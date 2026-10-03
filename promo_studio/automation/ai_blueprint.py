@@ -72,28 +72,29 @@ Write today's 'Daily Cosmic Blueprint' social post using the following astronomi
 CONTENT ROTATION THEME: {p.content_theme.upper()}
 
 Requirements for Instagram Caption:
-1. Hook: An inspiring opening honoring the day's Vara ({p.vara_sa}), Masa ({p.masa_name}), and active deity ({p.deity}).
-2. Cosmic Blueprint Summary:
-   - Tithi: {p.tithi_name}
-   - Nakshatra: {p.nakshatra_name} (Moon in {p.moon_rashi.split()[0]})
-   - ⭐ Abhijit Muhurta: {p.abhijit_muhurta} (best window for important tasks)
-   - ⚠️ Rahu Kaal: {p.rahu_kaal} (caution window; avoid new major initiatives)
-3. Planetary Transit (Gochar) & Rashi Radar:
-   - Highlight the current planetary movement (e.g. Guru in {p.gochar.jupiter_sign if p.gochar else 'Karka'}, Shani in {p.gochar.saturn_sign if p.gochar else 'Meena'}).
-   - Mention key Rashis experiencing favorable flow: {', '.join(p.gochar.favorable_rashis) if p.gochar else 'Cancer, Scorpio'}.
-   - Brief Dasha educational tip: {p.gochar.dasha_spotlight_title if p.gochar else 'Vimshottari Dasha'}.
-4. Spiritual Remedy & Positive Affirmation:
+1. Language: Culturally rich, respectful Hindi (Devanagari script) with clean English sub-labels for maximum Instagram and WhatsApp story resonance.
+2. Hook: 
+   - An inspiring devotional opening honoring {p.vara_hi} ({p.vara_en}), {p.masa_name_hi} मास, and active deity ({p.deity_hi} / {p.deity}).
+3. Cosmic Blueprint Summary (दैनिक पंचांग सारांश):
+   - तिथि: {p.tithi_name_hi} ({p.tithi_name})
+   - नक्षत्र: {p.nakshatra_name_hi} ({p.nakshatra_name})
+   - ⭐ शुभ अभिजीत मुहूर्त: {p.abhijit_muhurta} (श्रेष्ठ समय शुभ कार्यों हेतु)
+   - ⚠️ राहुकाल: {p.rahu_kaal} (इस काल में नए कार्य व समझौते टालें)
+4. Planetary Transit Radar (दैनिक ग्रह गोचर रडार):
+   - Highlight the current planetary positions: Guru in {p.gochar.jupiter_sign if p.gochar else 'Karka'}, Shani in {p.gochar.saturn_sign if p.gochar else 'Meena'}.
+   - Mention favorable rashis: {', '.join(p.gochar.favorable_rashis) if p.gochar else 'Cancer, Scorpio'}.
+   - Brief Dasha educational tip in Hindi: {p.gochar.dasha_spotlight_title if p.gochar else 'विंशोत्तरी महादशा'}.
+5. Spiritual Remedy (दैनिक वैदिक उपाय एवं सकारात्मक संकल्प):
    - {p.remedy}
-5. The App Lead-Magnet Hook (CRUCIAL):
-   - Hook followers to check their personal birth chart:
-     "Curious which Mahadasha or Antardasha is currently active in your life? How do today's planetary transits affect your personal Janam Kundli? Download the Siddhanta App, enter your Date & Time of Birth, and unlock your customized astrological roadmap! 📲 (Link in bio)"
-6. Hashtags: 12 to 15 relevant Vedic hashtags without '#' symbol in the array (e.g. ["Panchang", "VedicAstrology", "Kundli", "SiddhantaApp", "Gochar", "Mahadasha", ...]).
+6. The App Lead-Magnet Hook (ऐप डाउनलोड कॉल-टू-एक्शन):
+   - "📲 क्या आप जानते हैं कि आपकी व्यक्तिगत जन्म कुंडली में वर्तमान में कौन सी महादशा अथवा अंतर्दशा चल रही है? आज का ग्रह गोचर आपके जीवन को कैसे प्रभावित कर रहा है? अपनी सटीक जन्म कुंडली और व्यक्तिगत मार्गदर्शन के लिए आज ही 'Siddhanta' ऐप डाउनलोड करें! (Link in bio)"
+7. Hashtags: 15 to 18 high-performing Vedic hashtags in Hindi and English (e.g. ["पंचांग", "Panchang", "VedicAstrology", "Kundli", "SiddhantaApp", "राशिफल", "महादशा", "DailyHoroscope", "ज्योतिष", ...]).
 
 Output JSON format:
 {{
-  "instagram_caption": "Full Instagram caption text here with emojis...",
-  "facebook_text": "Full Facebook post text including Google Play store link (https://play.google.com/store/apps/details?id=com.tshashwat.panchang)...",
-  "hashtags": ["Panchang", "VedicAstrology", "Kundli", "Muhurta", "SiddhantaApp", ...]
+  "instagram_caption": "Full Instagram caption text here in Hindi/English with beautiful emojis...",
+  "facebook_text": "Full Facebook post text with Play Store link (https://play.google.com/store/apps/details?id=com.tshashwat.panchang)...",
+  "hashtags": ["Panchang", "VedicAstrology", "Kundli", "Muhurta", "SiddhantaApp", "Jyotish", "पंचांग", "कुंडली"]
 }}
 """
 
@@ -128,6 +129,11 @@ Output JSON format:
             pass
 
     # Reliable Vedic fallback template if API call fails
+    return get_devotional_fallback_copy(p)
+
+
+def get_devotional_fallback_copy(p: DailyPanchang) -> dict:
+    """Returns a culturally rich, devotional fallback caption and hashtags."""
     return {
         "instagram_caption": (
             f"🕉️ Daily Cosmic Blueprint • {p.date_formatted}\n\n"

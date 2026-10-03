@@ -1,293 +1,307 @@
-"""Dynamic visual card generator for Siddhanta Daily Cosmic Blueprint.
+"""High-Precision Template Renderer for Siddhanta Social Graphics.
 
-Renders pixel-perfect Material 3 Saffron & Gold Vedic visual cards (1080x1350)
-using Pillow:
-- Slide 1: The Visual Hook (Date, Masa, Tithi, Nakshatra, Vara, Sunrise/Sunset)
-- Slide 2: The Value Add (Abhijit Muhurta, Rahu Kaal, Spiritual Focus)
-- Combined Card: Both slides unified into one high-impact 4:5 Instagram portrait.
+Directly composites daily dynamic astronomical data onto Siddhanta's
+official master background templates matching the user's agency mockups:
+- Slide 1: Panchang Temple Riverside Template ("Today's Panchang")
+- Slide 2: Golden Temple Sunrise with Diyas and Lotuses ("Plan Your Day Wisely")
+- Slide 3: Celestial Temple Astrology Poster Template ("Jyotish Insight / Planetary Transits")
 """
 from __future__ import annotations
 
+import math
 import os
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from promo_studio.automation.panchang_engine import DailyPanchang
 
-# ── Color Palette (Material 3 Saffron & Vedic Gold) ──────────────────────────
+ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+TEMPLATES_DIR = ASSETS_DIR / "templates"
+FONTS_DIR = ASSETS_DIR / "fonts"
 
-BG_TOP = (25, 9, 3)          # Very deep midnight saffron
-BG_BOTTOM = (48, 16, 4)       # Warm deep vermilion
-CARD_BG = (42, 18, 8, 220)    # Translucent card background
-CARD_BORDER = (224, 90, 27)   # Vibrant saffron
-GOLD_PRIMARY = (245, 176, 65) # Warm Vedic Gold
-GOLD_LIGHT = (254, 235, 200)  # Cream Gold
+# ── Color Palette Matching Official Mockups ──────────────────────────────────
+COLOR_CRIMSON = (122, 20, 20)          # #7A1414 (Headers & Primary Values)
+COLOR_GOLD_TEXT = (180, 115, 30)       # #B4731E (Jyotish Panchang subtitle)
+COLOR_DARK = (30, 25, 22)              # #1E1916 (Timings & Primary Dark Text)
+COLOR_MUTED = (112, 102, 94)           # #70665E (Labels & Subtitles)
+COLOR_CARD_BG = (255, 253, 248, 230)   # Translucent cream card
+COLOR_CARD_BORDER = (235, 222, 202)
+COLOR_GREEN_TITLE = (36, 105, 68)      # #246944 (Abhijit Muhurta)
+COLOR_GREEN_CIRCLE = (220, 245, 230)
+COLOR_RED_TITLE = (169, 50, 38)        # #A93226 (Rahu Kaal)
+COLOR_RED_CIRCLE = (253, 230, 230)
+COLOR_AMBER_TITLE = (183, 121, 31)     # #B7791F (Choghadiya)
+COLOR_AMBER_CIRCLE = (254, 243, 220)
+COLOR_BTN_RED = (122, 20, 20)          # Bottom action button
 WHITE = (255, 255, 255)
-GREEN_AUSPICIOUS = (52, 211, 153) # Jade emerald for Abhijit
-RED_RAHU = (248, 113, 113)        # Coral amber for Rahu Kaal
-MUTED_TEXT = (209, 175, 155)
 
 
-def _load_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
-    """Finds best system font (Arial, Segoe UI, Roboto, DejaVuSans) with fallback."""
-    font_names = ["segoeui.ttf", "arial.ttf", "calibri.ttf", "DejaVuSans.ttf"]
-    if bold:
-        font_names = ["segoeuib.ttf", "arialbd.ttf", "calibrib.ttf", "DejaVuSans-Bold.ttf"] + font_names
-
-    # Check Windows fonts directory
-    windir = os.environ.get("WINDIR", "C:\\Windows")
-    for name in font_names:
-        full_path = os.path.join(windir, "Fonts", name)
-        if os.path.exists(full_path):
-            try:
-                return ImageFont.truetype(full_path, size)
-            except Exception:
-                pass
-
-    # Check Linux / standard paths
-    linux_paths = [
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-    ]
-    for p in linux_paths:
-        if os.path.exists(p):
-            try:
-                return ImageFont.truetype(p, size)
-            except Exception:
-                pass
-
+def _load_font(name: str, size: int) -> ImageFont.ImageFont:
+    p = FONTS_DIR / name
+    if p.exists():
+        try:
+            return ImageFont.truetype(str(p), size)
+        except Exception:
+            pass
     return ImageFont.load_default()
 
 
-def _draw_gradient(img: Image.Image, c1: tuple, c2: tuple) -> None:
-    """Draws vertical gradient background."""
-    w, h = img.size
-    base = Image.new("RGBA", (w, h), c1)
-    top_r, top_g, top_b = c1
-    bot_r, bot_g, bot_b = c2
+def _font_serif(size: int, bold: bool = True) -> ImageFont.ImageFont:
+    return _load_font("LibreBaskerville-Bold.ttf" if bold else "LibreBaskerville-Regular.ttf", size)
+
+
+def _font_sans(size: int, bold: bool = True) -> ImageFont.ImageFont:
+    return _load_font("DMSans-Bold.ttf" if bold else "DMSans-Medium.ttf", size)
+
+
+def _font_hindi(size: int) -> ImageFont.ImageFont:
+    return _load_font("NotoSansDevanagari-Regular.ttf", size)
+
+
+def _draw_brand_header(canvas: Image.Image, draw: ImageDraw.ImageDraw, x: int = 75, y: int = 55) -> None:
+    """Draws the official Siddhanta Jyotish Panchang logo & wordmark."""
+    logo_path = ASSETS_DIR / "logo.png"
+    if logo_path.exists():
+        try:
+            logo = Image.open(logo_path).convert("RGBA")
+            logo = logo.resize((72, 72), Image.Resampling.LANCZOS)
+            canvas.alpha_composite(logo, (x, y))
+        except Exception:
+            pass
+
+    font_title = _font_serif(34, bold=True)
+    font_sub = _font_serif(20, bold=False)
     
-    pixels = base.load()
-    for y in range(h):
-        r = int(top_r + (bot_r - top_r) * (y / h))
-        g = int(top_g + (bot_g - top_g) * (y / h))
-        b = int(top_b + (bot_b - top_b) * (y / h))
-        for x in range(w):
-            pixels[x, y] = (r, g, b, 255)
-    img.paste(base, (0, 0))
+    text_x = x + 90
+    draw.text((text_x, y + 4), "Siddhanta", fill=COLOR_CRIMSON, font=font_title)
+    draw.text((text_x, y + 42), "Jyotish Panchang", fill=COLOR_GOLD_TEXT, font=font_sub)
 
 
-def _draw_top_branding(draw: ImageDraw.ImageDraw, p: DailyPanchang, subtext: str = "THE DAILY COSMIC BLUEPRINT") -> None:
-    # Pill background
-    font_brand = _load_font(24, bold=True)
-    pill_text = f"SIDDHANTA  •  {subtext}"
-    draw.rounded_rectangle([200, 50, 880, 105], radius=25, fill=(60, 22, 9), outline=CARD_BORDER, width=2)
-    draw.text((540, 77), pill_text, fill=GOLD_PRIMARY, font=font_brand, anchor="mm")
+# ── Illustration Compositing Helpers ──────────────────────────────────────────
 
-    # Date header
-    font_date = _load_font(42, bold=True)
-    draw.text((540, 160), p.date_formatted, fill=WHITE, font=font_date, anchor="mm")
+def _paste_badge_icon(
+    canvas: Image.Image,
+    icon_rel_path: str,
+    box: tuple[int, int, int, int],
+    bg_color: tuple[int, int, int] | tuple[int, int, int, int],
+    padding: int = 8,
+) -> bool:
+    """Renders a circular badge with background color and the illustration centered inside."""
+    x1, y1, x2, y2 = box
+    draw = ImageDraw.Draw(canvas)
+    draw.ellipse(box, fill=bg_color)
 
-    # Masa + Paksha subtitle
-    font_sub = _load_font(28)
-    sub_line = f"Month: {p.masa_name} Masa  |  Paksha: {p.paksha}  |  {p.vara_sa}"
-    draw.text((540, 215), sub_line, fill=GOLD_LIGHT, font=font_sub, anchor="mm")
+    p = ASSETS_DIR / "illustrations" / icon_rel_path
+    if not p.exists():
+        return False
 
-    # Decorative divider
-    draw.line([250, 245, 830, 245], fill=CARD_BORDER, width=2)
+    try:
+        icon = Image.open(p).convert("RGBA")
+        inner_w = (x2 - x1) - 2 * padding
+        inner_h = (y2 - y1) - 2 * padding
+        w, h = icon.size
+        scale = min(inner_w / w, inner_h / h)
+        nw, nh = max(1, int(w * scale)), max(1, int(h * scale))
+        icon = icon.resize((nw, nh), Image.Resampling.LANCZOS)
+
+        corner_r, corner_g, corner_b, _ = icon.getpixel((0, 0))
+        if corner_r > 190 and corner_g > 190 and corner_b > 170:
+            getter = getattr(icon, "get_flattened_data", icon.getdata)
+            datas = list(getter())
+            tol_sq = 35 * 35
+            new_data = []
+            for r, g, b, a in datas:
+                dist_sq = (r - corner_r) ** 2 + (g - corner_g) ** 2 + (b - corner_b) ** 2
+                if dist_sq < tol_sq:
+                    alpha = int(255 * (dist_sq / tol_sq))
+                    new_data.append((r, g, b, min(a, alpha)))
+                else:
+                    new_data.append((r, g, b, a))
+            icon.putdata(new_data)
+
+        cx = (x1 + x2) // 2
+        cy = (y1 + y2) // 2
+        canvas.alpha_composite(icon, (cx - nw // 2, cy - nh // 2))
+        return True
+    except Exception:
+        return False
 
 
-def _draw_footer(draw: ImageDraw.ImageDraw) -> None:
-    # Footer branding
-    draw.line([100, 1260, 980, 1260], fill=(70, 28, 12), width=2)
-    font_foot = _load_font(24, bold=True)
-    draw.text((540, 1295), "SIDDHANTA APP  •  Vedic Panchang & Kundli  •  Google Play", fill=MUTED_TEXT, font=font_foot, anchor="mm")
-
+# ── Card Renderers ───────────────────────────────────────────────────────────
 
 def generate_slide_1_hook(p: DailyPanchang, output_path: str | Path) -> str:
-    """Slide 1 (The Visual Hook): Date, Masa, Big 3 (Tithi, Nakshatra, Vara), Sunrise/Sunset."""
-    w, h = 1080, 1350
-    img = Image.new("RGBA", (w, h))
-    _draw_gradient(img, BG_TOP, BG_BOTTOM)
-    draw = ImageDraw.Draw(img)
+    """Slide 1 (Today's Panchang): Matches Mockup 1 layout with pixel accuracy."""
+    template_path = TEMPLATES_DIR / "panchang_template.png"
+    canvas = Image.open(template_path).convert("RGBA")
+    draw = ImageDraw.Draw(canvas)
 
-    _draw_top_branding(draw, p, "THE DAILY COSMIC BLUEPRINT")
+    # 1. Official Header
+    _draw_brand_header(canvas, draw, x=75, y=55)
 
-    # Festival Banner if active
-    top_offset = 290
-    if p.is_festival:
-        draw.rounded_rectangle([80, top_offset, 1000, top_offset + 120], radius=20, fill=(90, 25, 10), outline=GOLD_PRIMARY, width=3)
-        font_fest = _load_font(34, bold=True)
-        draw.text((540, top_offset + 42), f"✨ {p.festival_name} ✨", fill=GOLD_PRIMARY, font=font_fest, anchor="mm")
-        font_fest_sub = _load_font(22)
-        draw.text((540, top_offset + 85), p.festival_note[:70], fill=WHITE, font=font_fest_sub, anchor="mm")
-        top_offset += 150
+    # 2. Main Title: Today's Panchang
+    draw.text((75, 175), "Today's", fill=COLOR_CRIMSON, font=_font_serif(64, bold=True))
+    draw.text((75, 248), "Panchang", fill=COLOR_CRIMSON, font=_font_serif(64, bold=True))
 
-    # The Big 3: TITHI, NAKSHATRA, VARA
-    # Card 1: Tithi
-    card1_y = top_offset
-    draw.rounded_rectangle([80, card1_y, 1000, card1_y + 190], radius=22, fill=(45, 17, 7), outline=CARD_BORDER, width=2)
-    font_lbl = _load_font(24, bold=True)
-    draw.text((120, card1_y + 35), "TODAY'S TITHI", fill=GOLD_PRIMARY, font=font_lbl)
-    font_val = _load_font(52, bold=True)
-    draw.text((120, card1_y + 105), p.tithi_name, fill=WHITE, font=font_val)
+    # Date header
+    day_str = p.date.strftime("%d %B %Y").upper()
+    draw.text((75, 338), day_str, fill=COLOR_DARK, font=_font_sans(24, bold=True))
+    
+    paksha_str = f"{p.vara_en.upper()}  •  {p.paksha.upper()} PAKSHA"
+    draw.text((75, 372), paksha_str, fill=COLOR_MUTED, font=_font_sans(19, bold=False))
 
-    # Card 2: Nakshatra
-    card2_y = card1_y + 215
-    draw.rounded_rectangle([80, card2_y, 1000, card2_y + 190], radius=22, fill=(45, 17, 7), outline=CARD_BORDER, width=2)
-    draw.text((120, card2_y + 35), "ACTIVE NAKSHATRA", fill=GOLD_PRIMARY, font=font_lbl)
-    draw.text((120, card2_y + 105), f"{p.nakshatra_name} (Moon in {p.moon_rashi.split()[0]})", fill=WHITE, font=font_val)
+    # 3. Card 1: TITHI
+    c1_y = 430
+    c_w, c_h = 560, 115
+    draw.rounded_rectangle([75, c1_y, 75 + c_w, c1_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER, width=1)
+    
+    # Official Siddhanta Moon illustration badge
+    _paste_badge_icon(canvas, "icons/Moon.webp", (95, c1_y + 22, 165, c1_y + 92), COLOR_AMBER_CIRCLE, padding=12)
+    
+    draw.text((185, c1_y + 20), "Tithi", fill=COLOR_MUTED, font=_font_sans(17))
+    draw.text((185, c1_y + 44), p.tithi_name, fill=COLOR_CRIMSON, font=_font_serif(26, bold=True))
+    draw.text((185, c1_y + 80), f"{p.tithi_name_hi}", fill=COLOR_MUTED, font=_font_hindi(18))
 
-    # Card 3: Vara (Weekday) & Deity
-    card3_y = card2_y + 215
-    draw.rounded_rectangle([80, card3_y, 1000, card3_y + 190], radius=22, fill=(45, 17, 7), outline=CARD_BORDER, width=2)
-    draw.text((120, card3_y + 35), f"VARA: {p.vara_sa.upper()} ({p.vara_en.upper()})", fill=GOLD_PRIMARY, font=font_lbl)
-    font_deity = _load_font(40, bold=True)
-    draw.text((120, card3_y + 100), f"Active Deity: {p.deity}", fill=GOLD_LIGHT, font=font_deity)
+    # 4. Card 2: NAKSHATRA
+    c2_y = c1_y + 135
+    draw.rounded_rectangle([75, c2_y, 75 + c_w, c2_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER, width=1)
+    
+    # Official Siddhanta Nakshatra star illustration badge
+    _paste_badge_icon(canvas, "icons/nakshatra.webp", (95, c2_y + 22, 165, c2_y + 92), COLOR_AMBER_CIRCLE, padding=6)
+    
+    draw.text((185, c2_y + 20), "Nakshatra", fill=COLOR_MUTED, font=_font_sans(17))
+    draw.text((185, c2_y + 44), p.nakshatra_name, fill=COLOR_CRIMSON, font=_font_serif(26, bold=True))
+    draw.text((185, c2_y + 80), p.nakshatra_name_hi, fill=COLOR_MUTED, font=_font_hindi(18))
 
-    # Sunrise & Sunset Strip
-    sun_y = card3_y + 215
-    draw.rounded_rectangle([80, sun_y, 1000, sun_y + 90], radius=18, fill=(35, 13, 5), outline=(75, 28, 12), width=1)
-    font_sun = _load_font(28, bold=True)
-    sun_text = f"Sunrise: {p.sunrise_str}    |    Sunset: {p.sunset_str}"
-    draw.text((540, sun_y + 45), sun_text, fill=WHITE, font=font_sun, anchor="mm")
+    # 5. Sunrise & Sunset Bottom Strip with Official Siddhanta Icons
+    sun_y = 1255
+    strip_w = 440
+    draw.rounded_rectangle([75, sun_y, 75 + strip_w, sun_y + 75], radius=16, fill=(255, 253, 248, 235), outline=COLOR_CARD_BORDER, width=1)
+    
+    _paste_badge_icon(canvas, "icons/Sunrise.webp", (90, sun_y + 12, 142, sun_y + 64), COLOR_AMBER_CIRCLE, padding=6)
+    draw.text((152, sun_y + 16), "Sunrise", fill=COLOR_MUTED, font=_font_sans(15))
+    draw.text((152, sun_y + 38), p.sunrise_str, fill=COLOR_DARK, font=_font_sans(20, bold=True))
+    
+    draw.line([250, sun_y + 15, 250, sun_y + 60], fill=(225, 210, 190), width=1)
 
-    # Swipe CTA
-    font_swipe = _load_font(24, bold=True)
-    draw.text((540, 1220), "👉 SWIPE FOR AUSPICIOUS & RAHU KAAL WINDOWS", fill=GOLD_PRIMARY, font=font_swipe, anchor="mm")
-
-    _draw_footer(draw)
+    _paste_badge_icon(canvas, "icons/Sunset.webp", (265, sun_y + 12, 317, sun_y + 64), COLOR_AMBER_CIRCLE, padding=6)
+    draw.text((327, sun_y + 16), "Sunset", fill=COLOR_MUTED, font=_font_sans(15))
+    draw.text((327, sun_y + 38), p.sunset_str, fill=COLOR_DARK, font=_font_sans(20, bold=True))
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    img.save(output_path, "PNG")
+    canvas.save(output_path, "PNG")
     return str(output_path)
 
 
 def generate_slide_2_value(p: DailyPanchang, output_path: str | Path) -> str:
-    """Slide 2 (The Value Add): Abhijit Muhurta, Rahu Kaal, Spiritual Guidance."""
-    w, h = 1080, 1350
-    img = Image.new("RGBA", (w, h))
-    _draw_gradient(img, BG_TOP, BG_BOTTOM)
-    draw = ImageDraw.Draw(img)
+    """Slide 2 (Plan Your Day Wisely): Matches Mockup 2 layout with pixel accuracy."""
+    template_path = TEMPLATES_DIR / "plan_day_template.png"
+    canvas = Image.open(template_path).convert("RGBA")
+    draw = ImageDraw.Draw(canvas)
 
-    _draw_top_branding(draw, p, "ACTIONABLE DAILY WINDOWS")
+    # 1. Official Header
+    _draw_brand_header(canvas, draw, x=75, y=55)
 
-    top_y = 290
-    # Auspicious Card: Abhijit Muhurta
-    draw.rounded_rectangle([80, top_y, 1000, top_y + 240], radius=24, fill=(20, 45, 30), outline=GREEN_AUSPICIOUS, width=3)
-    font_badge = _load_font(26, bold=True)
-    draw.text((120, top_y + 45), "⭐  ABHIJIT MUHURTA (MOST AUSPICIOUS)", fill=GREEN_AUSPICIOUS, font=font_badge)
-    font_time = _load_font(60, bold=True)
-    draw.text((120, top_y + 125), p.abhijit_muhurta, fill=WHITE, font=font_time)
-    font_desc = _load_font(24)
-    draw.text((120, top_y + 195), "Ideal for new beginnings, contracts, sacred purchases & travel.", fill=(200, 240, 220), font=font_desc)
-
-    # Inauspicious Card: Rahu Kaal
-    rahu_y = top_y + 270
-    draw.rounded_rectangle([80, rahu_y, 1000, rahu_y + 240], radius=24, fill=(45, 18, 18), outline=RED_RAHU, width=3)
-    draw.text((120, rahu_y + 45), "⚠️  RAHU KAAL (AVOID CRITICAL INITIATIVES)", fill=RED_RAHU, font=font_badge)
-    draw.text((120, rahu_y + 125), p.rahu_kaal, fill=WHITE, font=font_time)
-    draw.text((120, rahu_y + 195), "Postpone signing contracts, new purchases & starting journeys.", fill=(245, 205, 205), font=font_desc)
-
-    # Day's Cosmic Focus & Planetary Transit Radar
-    guidance_y = rahu_y + 250
-    draw.rounded_rectangle([80, guidance_y, 1000, guidance_y + 300], radius=24, fill=(45, 17, 7), outline=CARD_BORDER, width=2)
+    # 2. Main Title: Plan Your Day Wisely
+    draw.text((75, 175), "Plan Your", fill=COLOR_CRIMSON, font=_font_serif(60, bold=True))
+    draw.text((75, 245), "Day Wisely", fill=COLOR_CRIMSON, font=_font_serif(60, bold=True))
     
-    draw.text((120, guidance_y + 35), "🪐  PLANETARY TRANSIT RADAR (GOCHAR)", fill=GOLD_PRIMARY, font=font_badge)
-    
-    font_gochar_bold = _load_font(28, bold=True)
-    font_gochar_sub = _load_font(24)
-    
-    if p.gochar:
-        transit_line = f"Guru in {p.gochar.jupiter_sign.split()[0]}  •  Shani in {p.gochar.saturn_sign.split()[0]}  •  Rahu in {p.gochar.rahu_sign.split()[0]}"
-        draw.text((120, guidance_y + 80), transit_line, fill=WHITE, font=font_gochar_bold)
-        
-        fav_line = f"✨ High Alignment Rashis: {', '.join(p.gochar.favorable_rashis)}"
-        draw.text((120, guidance_y + 130), fav_line, fill=GOLD_LIGHT, font=font_gochar_bold)
-        
-        dasha_line = f"📌 {p.gochar.dasha_spotlight_title}: {p.gochar.dasha_spotlight_desc[:65]}..."
-        draw.text((120, guidance_y + 180), dasha_line, fill=MUTED_TEXT, font=font_gochar_sub)
-        
-        hook_line = "Check your personal birth Kundli & active Dasha in Siddhanta!"
-        draw.text((120, guidance_y + 225), hook_line, fill=GREEN_AUSPICIOUS, font=font_gochar_bold)
-    else:
-        draw.text((120, guidance_y + 100), p.remedy[:80], fill=WHITE, font=font_gochar_bold)
+    draw.text((75, 330), "Auspicious timings for a more harmonious day.", fill=COLOR_MUTED, font=_font_serif(21, bold=False))
 
-    # App CTA Banner
-    cta_y = guidance_y + 325
-    draw.rounded_rectangle([150, cta_y, 930, cta_y + 70], radius=15, fill=(60, 22, 9), outline=GOLD_PRIMARY, width=1)
-    font_cta = _load_font(24, bold=True)
-    draw.text((540, cta_y + 35), "📲 Get Your Exact Birth Kundli & Dasha on Siddhanta App", fill=GOLD_PRIMARY, font=font_cta, anchor="mm")
+    # 3. Card 1: ABHIJIT MUHURTA (Emerald Green with Sacred Kalash)
+    c1_y = 395
+    c_w, c_h = 580, 130
+    draw.rounded_rectangle([75, c1_y, 75 + c_w, c1_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER, width=1)
+    _paste_badge_icon(canvas, "icons/kalash.webp", (95, c1_y + 22, 165, c1_y + 92), COLOR_GREEN_CIRCLE, padding=10)
 
-    _draw_footer(draw)
+    draw.text((185, c1_y + 20), "Abhijit Muhurta", fill=COLOR_GREEN_TITLE, font=_font_sans(20, bold=True))
+    draw.text((185, c1_y + 50), p.abhijit_muhurta, fill=COLOR_DARK, font=_font_sans(26, bold=True))
+    draw.text((185, c1_y + 88), "A highly auspicious time for important work.", fill=COLOR_MUTED, font=_font_sans(17))
+
+    # 4. Card 2: RAHU KAAL (Caution Red with Rahu Planet Symbol)
+    c2_y = c1_y + 150
+    draw.rounded_rectangle([75, c2_y, 75 + c_w, c2_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER, width=1)
+    _paste_badge_icon(canvas, "planets/rahu.webp", (95, c2_y + 22, 165, c2_y + 92), COLOR_RED_CIRCLE, padding=12)
+
+    draw.text((185, c2_y + 20), "Rahu Kaal", fill=COLOR_RED_TITLE, font=_font_sans(20, bold=True))
+    draw.text((185, c2_y + 50), p.rahu_kaal, fill=COLOR_DARK, font=_font_sans(26, bold=True))
+    draw.text((185, c2_y + 88), "Avoid starting new important activities.", fill=COLOR_MUTED, font=_font_sans(17))
+
+    # 5. Card 3: CHOGHADIYA (Warm Amber with Authentic Choghadiya Matrix)
+    c3_y = c2_y + 150
+    draw.rounded_rectangle([75, c3_y, 75 + c_w, c3_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER, width=1)
+    _paste_badge_icon(canvas, "icons/home/choghadiya.webp", (95, c3_y + 22, 165, c3_y + 92), COLOR_AMBER_CIRCLE, padding=8)
+
+    draw.text((185, c3_y + 20), "Choghadiya (Shubh / Labh)", fill=COLOR_AMBER_TITLE, font=_font_sans(20, bold=True))
+    draw.text((185, c3_y + 50), "Morning Auspicious Periods", fill=COLOR_DARK, font=_font_sans(24, bold=True))
+    draw.text((185, c3_y + 88), "Good for business, finance & travel.", fill=COLOR_MUTED, font=_font_sans(17))
+
+    # 6. Bottom Sign-off Quote (in elegant translucent card)
+    quote_y = 860
+    draw.rounded_rectangle([75, quote_y, 75 + c_w, quote_y + 60], radius=14, fill=(255, 253, 248, 225), outline=COLOR_CARD_BORDER)
+    draw.text((75 + c_w // 2, quote_y + 30), "“Right timing brings the right results.”", fill=COLOR_CRIMSON, font=_font_serif(22, bold=False), anchor="mm")
+
+    # 7. Bottom CTA Button
+    btn_y = 940
+    draw.rounded_rectangle([75, btn_y, 75 + 460, btn_y + 62], radius=16, fill=COLOR_BTN_RED)
+    draw.text((75 + 230, btn_y + 31), "Explore in Siddhanta  ›", fill=WHITE, font=_font_sans(20, bold=True), anchor="mm")
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    img.save(output_path, "PNG")
+    canvas.save(output_path, "PNG")
     return str(output_path)
 
 
 def generate_combined_card(p: DailyPanchang, output_path: str | Path) -> str:
-    """Combined 2-in-1 High-Impact Card (1080x1350 4:5 Instagram Portrait)."""
-    w, h = 1080, 1350
-    img = Image.new("RGBA", (w, h))
-    _draw_gradient(img, BG_TOP, BG_BOTTOM)
-    draw = ImageDraw.Draw(img)
+    """Slide 3 (Planetary Gochar Transit): Uses the Celestial Temple template."""
+    template_path = TEMPLATES_DIR / "transit_template.png"
+    canvas = Image.open(template_path).convert("RGBA")
+    draw = ImageDraw.Draw(canvas)
 
-    _draw_top_branding(draw, p, "DAILY COSMIC BLUEPRINT")
+    _draw_brand_header(canvas, draw, x=75, y=55)
 
-    # Section 1: Core Panchang
-    y = 270
-    draw.rounded_rectangle([70, y, 1010, y + 360], radius=22, fill=(45, 17, 7), outline=CARD_BORDER, width=2)
-    font_head = _load_font(26, bold=True)
-    draw.text((110, y + 35), "TODAY'S SACRED ENERGIES", fill=GOLD_PRIMARY, font=font_head)
+    # Pill badge
+    draw.rounded_rectangle([75, 160, 290, 198], radius=10, fill=(255, 245, 230), outline=COLOR_CARD_BORDER)
+    draw.text((182, 179), "JYOTISH INSIGHT", fill=COLOR_GOLD_TEXT, font=_font_sans(17, bold=True), anchor="mm")
+
+    # Transit Title
+    jup_sign = p.gochar.jupiter_sign if p.gochar else "Gemini"
     
-    font_bold = _load_font(38, bold=True)
-    draw.text((110, y + 95), f"Tithi: {p.tithi_name}", fill=WHITE, font=font_bold)
-    draw.text((110, y + 160), f"Nakshatra: {p.nakshatra_name} (in {p.moon_rashi.split()[0]})", fill=WHITE, font=font_bold)
-    draw.text((110, y + 225), f"Vara: {p.vara_sa} ({p.vara_en})", fill=GOLD_LIGHT, font=font_bold)
-    
-    font_sun = _load_font(26)
-    draw.text((110, y + 295), f"🌅 Sunrise: {p.sunrise_str}    |    🌇 Sunset: {p.sunset_str}", fill=MUTED_TEXT, font=font_sun)
+    draw.text((75, 220), "Jupiter Transit", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
+    draw.text((75, 285), f"in {jup_sign.split()[0]}", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
 
-    # Section 2: Actionable Windows
-    y_win = y + 390
-    draw.rounded_rectangle([70, y_win, 520, y_win + 220], radius=20, fill=(20, 45, 30), outline=GREEN_AUSPICIOUS, width=2)
-    font_win_lbl = _load_font(22, bold=True)
-    draw.text((95, y_win + 28), "⭐ ABHIJIT MUHURTA", fill=GREEN_AUSPICIOUS, font=font_win_lbl)
-    font_win_time = _load_font(34, bold=True)
-    draw.text((95, y_win + 85), p.abhijit_muhurta, fill=WHITE, font=font_win_time)
-    font_win_sub = _load_font(18)
-    draw.text((95, y_win + 155), "Most Auspicious Window", fill=(190, 240, 210), font=font_win_sub)
+    draw.text((75, 365), f"GURU GOCHAR IN {jup_sign.upper()}", fill=COLOR_MUTED, font=_font_sans(19, bold=True))
 
-    draw.rounded_rectangle([560, y_win, 1010, y_win + 220], radius=20, fill=(45, 18, 18), outline=RED_RAHU, width=2)
-    draw.text((585, y_win + 28), "⚠️ RAHU KAAL", fill=RED_RAHU, font=font_win_lbl)
-    draw.text((585, y_win + 85), p.rahu_kaal, fill=WHITE, font=font_win_time)
-    draw.text((585, y_win + 155), "Avoid New Beginnings", fill=(245, 195, 195), font=font_win_sub)
+    # Bullet Points with Official Siddhanta Illustrations
+    bullets_y = 425
+    c_w, b_h = 580, 110
+    draw.rounded_rectangle([75, bullets_y, 75 + c_w, bullets_y + b_h], radius=16, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER)
+    _paste_badge_icon(canvas, "planets/jupiter.webp", (95, bullets_y + 25, 155, bullets_y + 85), COLOR_AMBER_CIRCLE, padding=6)
+    draw.text((175, bullets_y + 22), "Brings expansion in knowledge", fill=COLOR_DARK, font=_font_sans(20, bold=True))
+    draw.text((175, bullets_y + 55), "and spiritual clarity for seekers", fill=COLOR_MUTED, font=_font_sans(17))
 
-    # Section 3: Spiritual Remedy / Deity Guidance
-    y_guide = y_win + 245
-    draw.rounded_rectangle([70, y_guide, 1010, y_guide + 260], radius=20, fill=(40, 15, 6), outline=CARD_BORDER, width=2)
-    deity_title = f"🕉️ DEITY & REMEDY: {p.deity.upper()}"
-    draw.text((110, y_guide + 30), deity_title[:45], fill=GOLD_PRIMARY, font=font_head)
-    
-    font_rem = _load_font(26)
-    # wrap remedy text
-    words = p.remedy.split()
-    lines, curr = [], []
-    for w_word in words:
-        curr.append(w_word)
-        if len(" ".join(curr)) > 50:
-            lines.append(" ".join(curr[:-1]))
-            curr = [w_word]
-    if curr:
-        lines.append(" ".join(curr))
+    b2_y = bullets_y + 125
+    draw.rounded_rectangle([75, b2_y, 75 + c_w, b2_y + b_h], radius=16, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER)
+    _paste_badge_icon(canvas, "icons/home/transit.webp", (95, b2_y + 25, 155, b2_y + 85), COLOR_GREEN_CIRCLE, padding=8)
+    favs = ", ".join(p.gochar.favorable_rashis[:3]) if p.gochar else "Taurus, Cancer, Virgo"
+    draw.text((175, b2_y + 22), f"Favorable flow: {favs}", fill=COLOR_GREEN_TITLE, font=_font_sans(20, bold=True))
+    draw.text((175, b2_y + 55), "Positive momentum in education & projects", fill=COLOR_MUTED, font=_font_sans(17))
 
-    r_y = y_guide + 85
-    for l in lines[:3]:
-        draw.text((110, r_y), l, fill=WHITE, font=font_rem)
-        r_y += 40
+    b3_y = b2_y + 125
+    draw.rounded_rectangle([75, b3_y, 75 + c_w, b3_y + b_h], radius=16, fill=COLOR_CARD_BG, outline=COLOR_CARD_BORDER)
+    _paste_badge_icon(canvas, "icons/home/kundli.webp", (95, b3_y + 25, 155, b3_y + 85), COLOR_AMBER_CIRCLE, padding=8)
+    dasha_title = p.gochar.dasha_spotlight_title if p.gochar else "Vimshottari Dasha"
+    draw.text((175, b3_y + 22), f"Dasha: {dasha_title[:28]}", fill=COLOR_DARK, font=_font_sans(20, bold=True))
+    draw.text((175, b3_y + 55), "Check your active Mahadasha in Siddhanta", fill=COLOR_MUTED, font=_font_sans(17))
 
-    _draw_footer(draw)
+    # Quote (in soft translucent card matching Mockup 6)
+    quote_y = 820
+    draw.rounded_rectangle([75, quote_y, 75 + c_w, quote_y + 60], radius=14, fill=(255, 253, 248, 225), outline=COLOR_CARD_BORDER)
+    draw.text((75 + c_w // 2, quote_y + 30), "“When Guru moves, wisdom finds a new direction.”", fill=COLOR_CRIMSON, font=_font_serif(21, bold=False), anchor="mm")
+
+    # Button
+    btn_y = 900
+    draw.rounded_rectangle([75, btn_y, 75 + 460, btn_y + 62], radius=16, fill=COLOR_BTN_RED)
+    draw.text((75 + 230, btn_y + 31), "Create Kundli in Siddhanta  ›", fill=WHITE, font=_font_sans(20, bold=True), anchor="mm")
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    img.save(output_path, "PNG")
+    canvas.save(output_path, "PNG")
     return str(output_path)

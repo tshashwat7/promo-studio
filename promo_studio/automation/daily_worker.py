@@ -104,19 +104,49 @@ def run_daily_worker(dry_run: bool = False, format_mode: str = "carousel", targe
 
     # 4. AI Caption Generation
     log.info("Invoking Gemini AI (%s) for Daily Cosmic Blueprint copy...", gemini_model)
+    copy_data = None
     if gemini_key:
-        gemini = GeminiProvider(gemini_key, gemini_model)
-        copy_data = generate_cosmic_caption(panchang, gemini, api_key=gemini_key)
+        try:
+            from promo_studio.automation.ai_blueprint import get_devotional_fallback_copy
+            gemini = GeminiProvider(gemini_key, gemini_model)
+            copy_data = generate_cosmic_caption(panchang, gemini, api_key=gemini_key)
+        except Exception as e:
+            log.warning("Gemini AI failed or not installed: %s. Using rich Vedic fallback copy.", e)
+            from promo_studio.automation.ai_blueprint import get_devotional_fallback_copy
+            copy_data = get_devotional_fallback_copy(panchang)
     else:
-        # Dry-run fallback without key
-        copy_data = {
-            "instagram_caption": f"🕉️ Daily Cosmic Blueprint • {panchang.date_formatted}\n\nToday is {panchang.vara_sa} ({panchang.vara_en}), blessed by {panchang.deity}.",
-            "hashtags": ["Panchang", "VedicAstrology", "Kundli", "SiddhantaApp"]
-        }
+        from promo_studio.automation.ai_blueprint import get_devotional_fallback_copy
+        copy_data = get_devotional_fallback_copy(panchang)
 
     raw_caption = copy_data.get("instagram_caption", "")
     hashtags = " ".join(f"#{tag.lstrip('#')}" for tag in copy_data.get("hashtags", []))
     final_caption = f"{raw_caption}\n\n.\n.\n{hashtags}".strip()
+
+    # Save caption and metadata so they are included in the downloadable zip artifact
+    caption_file = out_dir / "caption.txt"
+    caption_file.write_text(final_caption, encoding="utf-8")
+
+    import json
+    metadata_file = out_dir / "post_metadata.json"
+    meta = {
+        "date": panchang.date_formatted,
+        "date_hi": panchang.date_formatted_hi,
+        "tithi": panchang.tithi_name,
+        "tithi_hi": panchang.tithi_name_hi,
+        "nakshatra": panchang.nakshatra_name,
+        "nakshatra_hi": panchang.nakshatra_name_hi,
+        "vara": panchang.vara_sa,
+        "vara_hi": panchang.vara_hi,
+        "deity": panchang.deity,
+        "deity_hi": panchang.deity_hi,
+        "abhijit_muhurta": panchang.abhijit_muhurta,
+        "rahu_kaal": panchang.rahu_kaal,
+        "favorable_rashis": panchang.gochar.favorable_rashis if panchang.gochar else [],
+        "dasha_spotlight": panchang.gochar.dasha_spotlight_title if panchang.gochar else "",
+        "hashtags": copy_data.get("hashtags", []),
+    }
+    metadata_file.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    log.info("Saved caption.txt and post_metadata.json into %s", out_dir)
 
     log.info("--- GENERATED CAPTION ---\n%s\n-------------------------", final_caption)
 

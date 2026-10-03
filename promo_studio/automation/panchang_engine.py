@@ -21,6 +21,15 @@ TITHI_NAMES = [
     "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Amavasya"
 ]
 
+TITHI_NAMES_HI = [
+    "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी",
+    "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी",
+    "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "पूर्णिमा",
+    "प्रतिपदा", "द्वितीया", "तृतीया", "चतुर्थी", "पंचमी",
+    "षष्ठी", "सप्तमी", "अष्टमी", "नवमी", "दशमी",
+    "एकादशी", "द्वादशी", "त्रयोदशी", "चतुर्दशी", "अमावस्या"
+]
+
 NAKSHATRA_NAMES = [
     "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira",
     "Ardra", "Punarvasu", "Pushya", "Ashlesha", "Magha",
@@ -30,9 +39,23 @@ NAKSHATRA_NAMES = [
     "Purva Bhadrapada", "Uttara Bhadrapada", "Revati"
 ]
 
+NAKSHATRA_NAMES_HI = [
+    "अश्विनी", "भरणी", "कृत्तिका", "रोहिणी", "मृगशिरा",
+    "आर्द्रा", "पुनर्वसु", "पुष्य", "आश्लेषा", "मघा",
+    "पूर्वाफाल्गुनी", "उत्तराफाल्गुनी", "हस्त", "चित्रा", "स्वाती",
+    "विशाखा", "अनुराधा", "ज्येष्ठा", "मूल", "पूर्वाषाढ़ा",
+    "उत्तराषाढ़ा", "श्रवण", "धनिष्ठा", "शतभिषा",
+    "पूर्वभाद्रपद", "उत्तरभाद्रपद", "रेवती"
+]
+
 MASA_NAMES = [
     "Chaitra", "Vaishakha", "Jyeshtha", "Ashadha", "Shravana", "Bhadrapada",
     "Ashwina", "Kartika", "Margashirsha", "Pausha", "Magha", "Phalguna"
+]
+
+MASA_NAMES_HI = [
+    "चैत्र", "वैशाख", "ज्येष्ठ", "आषाढ़", "श्रावण", "भाद्रपद",
+    "आश्विन", "कार्तिक", "मार्गशीर्ष", "पौष", "माघ", "फाल्गुन"
 ]
 
 RASHI_NAMES = [
@@ -41,52 +64,57 @@ RASHI_NAMES = [
     "Dhanu (Sagittarius)", "Makara (Capricorn)", "Kumbha (Aquarius)", "Meena (Pisces)"
 ]
 
+RASHI_NAMES_HI = [
+    "मेष", "वृषभ", "मिथुन", "कर्क", "सिंह", "कन्या",
+    "तुला", "वृश्चिक", "धनु", "मकर", "कुंभ", "मीन"
+]
+
 VARA_INFO = {
     0: {  # Monday
-        "name_sa": "Somavara", "name_en": "Monday",
-        "deity": "Lord Shiva & Chandra Dev",
+        "name_sa": "Somavara", "name_en": "Monday", "name_hi": "सोमवार",
+        "deity": "Lord Shiva & Chandra Dev", "deity_hi": "भगवान शिव एवं चंद्र देव",
         "color": "White / Pearl",
         "significance": "Mental peace, emotional balance, motherly grace, and Lord Shiva's divine blessings.",
         "remedy": "Offer pure water or milk to a Shiva Lingam, chant 'Om Namah Shivaya', and practice mindful meditation."
     },
     1: {  # Tuesday
-        "name_sa": "Mangalavara", "name_en": "Tuesday",
-        "deity": "Lord Hanuman & Mangal Dev",
+        "name_sa": "Mangalavara", "name_en": "Tuesday", "name_hi": "मंगलवार",
+        "deity": "Lord Hanuman & Mangal Dev", "deity_hi": "श्री हनुमान जी एवं मंगल देव",
         "color": "Red / Coral",
         "significance": "Courage, physical vitality, triumph over obstacles, and inner strength.",
         "remedy": "Recite Hanuman Chalisa, light a mustard or jasmine oil lamp, and avoid conflict or hasty decisions."
     },
     2: {  # Wednesday
-        "name_sa": "Budhavara", "name_en": "Wednesday",
-        "deity": "Lord Ganesha & Budha Dev",
+        "name_sa": "Budhavara", "name_en": "Wednesday", "name_hi": "बुधवार",
+        "deity": "Lord Ganesha & Budha Dev", "deity_hi": "भगवान श्री गणेश एवं बुध देव",
         "color": "Green / Emerald",
         "significance": "Intellect, business acumen, communication clarity, and learning.",
         "remedy": "Offer Durva grass to Lord Ganesha, chant 'Om Gan Ganapataye Namah', and plan financial or study goals."
     },
     3: {  # Thursday
-        "name_sa": "Brihaspativara", "name_en": "Thursday",
-        "deity": "Lord Vishnu & Guru Brihaspati",
+        "name_sa": "Brihaspativara", "name_en": "Thursday", "name_hi": "गुरुवार",
+        "deity": "Lord Vishnu & Guru Brihaspati", "deity_hi": "भगवान श्री विष्णु एवं देवगुरु बृहस्पति",
         "color": "Yellow / Gold",
         "significance": "Higher wisdom, spiritual growth, auspicious prosperity, and divine mentor guidance.",
         "remedy": "Chant 'Om Namo Bhagavate Vasudevaya', wear shades of yellow, and honor your teachers/gurus."
     },
     4: {  # Friday
-        "name_sa": "Shukravara", "name_en": "Friday",
-        "deity": "Goddess Mahalakshmi & Shukra Dev",
+        "name_sa": "Shukravara", "name_en": "Friday", "name_hi": "शुक्रवार",
+        "deity": "Goddess Mahalakshmi & Shukra Dev", "deity_hi": "मां महालक्ष्मी एवं शुक्र देव",
         "color": "Silver / Pink / White",
         "significance": "Abundance, harmony in relationships, creative arts, and inner and outer beauty.",
         "remedy": "Chant 'Om Shreem Mahalakshmiyei Namah', express gratitude for your blessings, and nurture healthy relationships."
     },
     5: {  # Saturday
-        "name_sa": "Shanivara", "name_en": "Saturday",
-        "deity": "Shani Dev & Lord Hanuman",
+        "name_sa": "Shanivara", "name_en": "Saturday", "name_hi": "शनिवार",
+        "deity": "Shani Dev & Lord Hanuman", "deity_hi": "सूर्यपुत्र शनि देव एवं हनुमान जी",
         "color": "Black / Dark Blue",
         "significance": "Discipline, karmic cleansing, endurance, justice, and protection from negative transits.",
         "remedy": "Light a sesame/mustard oil lamp under a Peepal tree, feed stray animals, and practice selfless humility."
     },
     6: {  # Sunday
-        "name_sa": "Ravivara", "name_en": "Sunday",
-        "deity": "Bhagwan Surya (Sun God)",
+        "name_sa": "Ravivar", "name_en": "Sunday", "name_hi": "रविवार",
+        "deity": "Bhagwan Surya (Sun God)", "deity_hi": "भगवान भुवन भास्कर सूर्य देव",
         "color": "Saffron / Copper",
         "significance": "Soul vitality (Atma Karaka), leadership, health, willpower, and fatherly blessings.",
         "remedy": "Offer Arghya (fresh water in a copper vessel) to the rising Sun while chanting the Gayatri Mantra."
@@ -135,23 +163,32 @@ class GocharSnapshot:
 class DailyPanchang:
     date: dt.date
     date_formatted: str
+    date_formatted_hi: str
     weekday_index: int
     vara_sa: str
     vara_en: str
+    vara_hi: str
     deity: str
+    deity_hi: str
     color: str
     significance: str
     remedy: str
     
     # Core Panchang
     paksha: str               # "Shukla" or "Krishna"
+    paksha_hi: str            # "शुक्ल पक्ष" or "कृष्ण पक्ष"
     tithi_index: int          # 0..29
     tithi_name: str           # e.g. "Shukla Dashami" or "Ekadashi"
+    tithi_name_hi: str        # e.g. "शुक्ल नवमी"
     masa_name: str            # e.g. "Ashwina"
+    masa_name_hi: str         # e.g. "आश्विन"
     nakshatra_index: int      # 0..26
     nakshatra_name: str       # e.g. "Rohini"
+    nakshatra_name_hi: str    # e.g. "रोहिणी"
     moon_rashi: str           # e.g. "Vrishabha (Taurus)"
+    moon_rashi_hi: str        # e.g. "वृषभ"
     sun_rashi: str            # e.g. "Kanya (Virgo)"
+    sun_rashi_hi: str         # e.g. "कन्या"
     
     # Auspicious & Inauspicious Timings
     sunrise_str: str          # e.g. "06:16 AM"
@@ -436,26 +473,45 @@ def calculate_daily_panchang(target_date: dt.date | None = None) -> DailyPanchan
         dasha_spotlight_desc=d_desc
     )
 
+    tithi_name_hi = f"{'शुक्ल' if paksha == 'Shukla' else 'कृष्ण'} {TITHI_NAMES_HI[tithi_index]}" if tithi_base_name not in ("Purnima", "Amavasya") else ("पूर्णिमा" if tithi_base_name == "Purnima" else "अमावस्या")
+    nakshatra_name_hi = NAKSHATRA_NAMES_HI[nakshatra_index]
+    masa_name_hi = MASA_NAMES_HI[masa_idx]
+    paksha_hi = "शुक्ल पक्ष" if paksha == "Shukla" else "कृष्ण पक्ष"
+    moon_rashi_hi = RASHI_NAMES_HI[moon_rashi_idx]
+    sun_rashi_hi = RASHI_NAMES_HI[sun_rashi_idx]
+    vara_hi = vara.get("name_hi", vara["name_sa"])
+    deity_hi = vara.get("deity_hi", vara["deity"])
+    date_formatted_hi = f"{vara_hi}, {target_date.day} {masa_name_hi} {target_date.year}"
+
     date_formatted = target_date.strftime("%A, %d %B %Y")
 
     return DailyPanchang(
         date=target_date,
         date_formatted=date_formatted,
+        date_formatted_hi=date_formatted_hi,
         weekday_index=weekday_idx,
         vara_sa=vara["name_sa"],
         vara_en=vara["name_en"],
+        vara_hi=vara_hi,
         deity=vara["deity"],
+        deity_hi=deity_hi,
         color=vara["color"],
         significance=vara["significance"],
         remedy=vara["remedy"],
         paksha=paksha,
+        paksha_hi=paksha_hi,
         tithi_index=tithi_index,
         tithi_name=tithi_name,
+        tithi_name_hi=tithi_name_hi,
         masa_name=masa_name,
+        masa_name_hi=masa_name_hi,
         nakshatra_index=nakshatra_index,
         nakshatra_name=nakshatra_name,
+        nakshatra_name_hi=nakshatra_name_hi,
         moon_rashi=moon_rashi,
+        moon_rashi_hi=moon_rashi_hi,
         sun_rashi=sun_rashi,
+        sun_rashi_hi=sun_rashi_hi,
         sunrise_str=_fmt_time(sunrise_time),
         sunset_str=_fmt_time(sunset_time),
         abhijit_muhurta=abhijit_str,

@@ -8,7 +8,7 @@ def test_panchang_calculation():
     d = dt.date(2026, 10, 4)
     p = calculate_daily_panchang(d)
     assert p.date == d
-    assert p.vara_sa == "Ravivara"
+    assert p.vara_sa == "Ravivar"
     assert p.vara_en == "Sunday"
     assert "Surya" in p.deity
     assert p.tithi_name != ""
