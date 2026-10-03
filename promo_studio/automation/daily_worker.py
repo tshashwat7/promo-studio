@@ -89,7 +89,7 @@ def run_daily_worker(dry_run: bool = False, format_mode: str = "carousel", targe
     log.info("Calculated Panchang: %s | Tithi: %s | Vara: %s | Theme: %s",
              panchang.date_formatted, panchang.tithi_name, panchang.vara_sa, panchang.content_theme)
 
-    # 3. Card Generation
+    # 3. Card Generation (Full 6-Card Universe)
     out_dir = Path("output") / panchang.date.strftime("%Y%m%d")
     out_dir.mkdir(parents=True, exist_ok=True)
     
@@ -97,10 +97,26 @@ def run_daily_worker(dry_run: bool = False, format_mode: str = "carousel", targe
     slide2_path = out_dir / "slide2_value.png"
     combined_path = out_dir / "combined_card.png"
 
-    generate_slide_1_hook(panchang, slide1_path)
-    generate_slide_2_value(panchang, slide2_path)
-    generate_combined_card(panchang, combined_path)
-    log.info("Rendered visual cards to %s", out_dir)
+    from promo_studio.automation.card_universe import (
+        render_card_1_panchang,
+        render_card_2_plan_day,
+        render_card_3_festival,
+        render_card_4_kundli,
+        render_card_5_chakra,
+        render_card_6_jyotish,
+    )
+
+    # Carousel slides
+    render_card_1_panchang(panchang, slide1_path)
+    render_card_2_plan_day(panchang, slide2_path)
+    render_card_6_jyotish(panchang, combined_path)
+
+    # Complete Universe Cards for artifact downloads
+    render_card_3_festival(panchang, out_dir / "card3_festival.png")
+    render_card_4_kundli(panchang, out_dir / "card4_kundli.png")
+    render_card_5_chakra(out_dir / "card5_chakra.png")
+
+    log.info("Rendered all 6 Universe cards to %s", out_dir)
 
     # 4. AI Caption Generation
     log.info("Invoking Gemini AI (%s) for Daily Cosmic Blueprint copy...", gemini_model)
