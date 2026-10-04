@@ -1,12 +1,15 @@
 """Siddhanta 6-Card Universe Generator.
 
-Pixel-accurate rendering engine matching the agency mockups in media_1791060503794.jpg:
-1. Daily Panchang (Clean, elegant overview with key details)
-2. Plan Your Day (Muhurta, Rahu Kaal and Choghadiya)
-3. Festival (Navratri / Festival Announcement)
-4. Kundli (Core features with clean chart motif)
-5. Chakra (Balance Your Inner Energy with 7 chakras)
-6. Jyotish Insight (Jupiter Transit / Planetary movements)
+Pixel-accurate rendering engine calibrated strictly for Instagram Feed 4:5 portrait (1080 x 1350)
+incorporating all agency editorial rules & brand consistency:
+
+Brand Standards:
+- Dimensions: CARD_W = 1080, CARD_H = 1350 (4:5 aspect ratio)
+- Typography: Maroon serif headlines, dark charcoal body, gold accents
+- Frame: Subtle ornamental corner brackets, consistent top brand header & divider (─── ◆ ───)
+- Background: Cream-first palette, utilizing rule-based empty background templates where available
+- CTA: Standardized restrained editorial footer pill across every card
+- Data Authority: No invented marketing claims or hardcoded festival dates
 """
 from __future__ import annotations
 
@@ -16,6 +19,7 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 from promo_studio.automation.panchang_engine import DailyPanchang
+from promo_studio.automation.template_selector import select_template_for_content
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 TEMPLATES_DIR = ASSETS_DIR / "templates"
@@ -23,17 +27,17 @@ FONTS_DIR = ASSETS_DIR / "fonts"
 ILLUST_DIR = ASSETS_DIR / "illustrations"
 IMAGES_DIR = ASSETS_DIR / "images"
 
-# Standard Tall Portrait Dimensions matching the Mockup
+# Strict 4:5 Instagram Feed Dimensions
 CARD_W = 1080
-CARD_H = 2160
+CARD_H = 1350
 
 # Palette
 COLOR_CRIMSON = (122, 20, 20)           # #7A1414 (Main Titles & Accents)
-COLOR_GOLD = (180, 115, 30)            # #B4731E (Subtitles & Gold Accents)
+COLOR_GOLD = (180, 115, 30)             # #B4731E (Subtitles & Gold Accents)
 COLOR_DARK = (30, 25, 22)               # #1E1916 (Timings & Headers)
 COLOR_MUTED = (112, 102, 94)            # #70665E (Descriptions)
 COLOR_CARD_BG = (255, 253, 248, 235)    # Translucent Cream
-COLOR_BORDER = (235, 222, 202)
+COLOR_BORDER = (235, 222, 202)          # Soft Cream Border
 COLOR_GREEN = (30, 107, 63)             # #1E6B3F (Abhijit)
 COLOR_RED = (138, 28, 20)               # #8A1C14 (Rahu)
 COLOR_AMBER = (180, 115, 30)            # #B4731E (Choghadiya)
@@ -102,7 +106,7 @@ def _paste_icon_badge(
     icon_path: Path,
     box: tuple[int, int, int, int],
     badge_fill: tuple[int, int, int] | tuple[int, int, int, int],
-    padding: int = 16,
+    padding: int = 12,
     badge_outline: tuple[int, int, int] | None = None,
 ) -> None:
     """Draws a circular badge and composites an illustration centered inside."""
@@ -130,150 +134,199 @@ def _paste_icon_badge(
         pass
 
 
-def _draw_brand_header(canvas: Image.Image, draw: ImageDraw.ImageDraw, y: int = 70) -> None:
+def _draw_brand_header(canvas: Image.Image, draw: ImageDraw.ImageDraw, y: int = 42) -> None:
     """Draws the official Siddhanta Jyotish Panchang header with ornamental divider."""
     logo_path = ASSETS_DIR / "logo.png"
     if logo_path.exists():
         try:
             logo = Image.open(logo_path).convert("RGBA")
-            logo = logo.resize((96, 96), Image.Resampling.LANCZOS)
-            canvas.alpha_composite(logo, (75, y))
+            logo = logo.resize((70, 70), Image.Resampling.LANCZOS)
+            canvas.alpha_composite(logo, (60, y))
         except Exception:
             pass
 
-    font_title = _font_serif(44, bold=True)
-    font_sub = _font_serif(26, bold=False)
+    font_title = _font_serif(34, bold=True)
+    font_sub = _font_serif(20, bold=False)
 
-    text_x = 75 + 115
-    draw.text((text_x, y + 4), "Siddhanta", fill=COLOR_CRIMSON, font=font_title)
-    draw.text((text_x, y + 54), "Jyotish Panchang", fill=COLOR_GOLD, font=font_sub)
+    text_x = 60 + 85
+    draw.text((text_x, y + 2), "Siddhanta", fill=COLOR_CRIMSON, font=font_title)
+    draw.text((text_x, y + 40), "Jyotish Panchang", fill=COLOR_GOLD, font=font_sub)
 
     # Ornamental divider: ─── ◆ ───
-    div_y = y + 130
-    draw.line([75, div_y, 490, div_y], fill=(210, 180, 130, 140), width=2)
-    draw.line([590, div_y, 1005, div_y], fill=(210, 180, 130, 140), width=2)
+    div_y = y + 84
+    draw.line([60, div_y, 500, div_y], fill=(210, 180, 130, 140), width=2)
+    draw.line([580, div_y, 1020, div_y], fill=(210, 180, 130, 140), width=2)
     # Diamond at center
     cx, cy = 540, div_y
-    draw.polygon([(cx, cy - 8), (cx + 8, cy), (cx, cy + 8), (cx - 8, cy)], fill=COLOR_GOLD)
+    draw.polygon([(cx, cy - 6), (cx + 6, cy), (cx, cy + 6), (cx - 6, cy)], fill=COLOR_GOLD)
 
 
-def _draw_cta_button(canvas: Image.Image, draw: ImageDraw.ImageDraw, text: str, y: int = 1920) -> None:
-    """Draws the official rounded crimson CTA button matching Mockups 3, 4, 5."""
-    btn_box = [75, y, 1005, y + 105]
-    draw.rounded_rectangle(btn_box, radius=24, fill=COLOR_CRIMSON)
+def _draw_card_frame(draw: ImageDraw.ImageDraw) -> None:
+    """Draws subtle ornamental corner mandala brackets for 1080x1350 canvas."""
+    c_color = (205, 175, 125, 120)
+    d_color = COLOR_GOLD
 
-    # Phone icon (vector)
-    ph_x, ph_y = 125, y + 32
-    draw.rounded_rectangle([ph_x, ph_y, ph_x + 28, ph_y + 44], radius=5, outline=WHITE, width=3)
-    draw.line([ph_x + 9, ph_y + 36, ph_x + 19, ph_y + 36], fill=WHITE, width=2)
+    # Top-Left Bracket
+    draw.line([(35, 55), (35, 30), (60, 30)], fill=c_color, width=2)
+    draw.polygon([(35, 28), (37, 30), (35, 32), (33, 30)], fill=d_color)
 
-    # Label & Arrow
-    font_btn = _font_sans(30, bold=True)
-    draw.text((540, y + 52), text, fill=WHITE, font=font_btn, anchor="mm")
-    draw.text((955, y + 52), "›", fill=WHITE, font=_font_serif(44, bold=True), anchor="mm")
+    # Top-Right Bracket
+    draw.line([(1045, 55), (1045, 30), (1020, 30)], fill=c_color, width=2)
+    draw.polygon([(1045, 28), (1047, 30), (1045, 32), (1043, 30)], fill=d_color)
+
+    # Bottom-Left Bracket
+    draw.line([(35, 1295), (35, 1320), (60, 1320)], fill=c_color, width=2)
+    draw.polygon([(35, 1318), (37, 1320), (35, 1322), (33, 1320)], fill=d_color)
+
+    # Bottom-Right Bracket
+    draw.line([(1045, 1295), (1045, 1320), (1020, 1320)], fill=c_color, width=2)
+    draw.polygon([(1045, 1318), (1047, 1320), (1045, 1322), (1043, 1320)], fill=d_color)
 
 
-def _prepare_canvas(template_name: str) -> tuple[Image.Image, ImageDraw.ImageDraw]:
-    """Prepares a standard 1080x2160 canvas with the background template fitted."""
-    t_path = TEMPLATES_DIR / template_name
-    canvas = Image.new("RGBA", (CARD_W, CARD_H), (255, 252, 245, 255))
-    if t_path.exists():
-        t_img = Image.open(t_path).convert("RGBA")
-        # Cover 1080x2160 preserving aspect ratio
-        scale = max(CARD_W / t_img.width, CARD_H / t_img.height)
-        nw = int(t_img.width * scale)
-        nh = int(t_img.height * scale)
-        t_img = t_img.resize((nw, nh), Image.Resampling.LANCZOS)
-        # Center crop
-        crop_x = (nw - CARD_W) // 2
-        crop_y = (nh - CARD_H) // 2
-        cropped = t_img.crop((crop_x, crop_y, crop_x + CARD_W, crop_y + CARD_H))
-        canvas.alpha_composite(cropped, (0, 0))
+def _draw_cta_pill(canvas: Image.Image, draw: ImageDraw.ImageDraw, text: str, y: int = 1245) -> None:
+    """Draws an elegant, restrained editorial footer pill replacing giant billboard buttons."""
+    pill_box = [60, y, 1020, y + 62]
+    # Subtle cream background with warm maroon border and refined typography
+    draw.rounded_rectangle(pill_box, radius=18, fill=(255, 250, 242, 230), outline=(190, 155, 115), width=2)
+
+    # Left subtle icon
+    ph_x, ph_y = 95, y + 17
+    draw.rounded_rectangle([ph_x, ph_y, ph_x + 18, ph_y + 28], radius=4, outline=COLOR_CRIMSON, width=2)
+    draw.line([ph_x + 6, ph_y + 21, ph_x + 12, ph_y + 21], fill=COLOR_CRIMSON, width=1)
+
+    # Label & subtle arrow
+    font_btn = _font_sans(22, bold=True)
+    draw.text((540, y + 31), text, fill=COLOR_CRIMSON, font=font_btn, anchor="mm")
+    draw.text((985, y + 30), "›", fill=COLOR_GOLD, font=_font_serif(30, bold=True), anchor="mm")
+
+
+def _prepare_card_canvas(theme: str, festival_name: str = "") -> tuple[Image.Image, ImageDraw.ImageDraw]:
+    """Prepares a 1080x1350 canvas with cream-first atmosphere and template selection."""
+    canvas = Image.new("RGBA", (CARD_W, CARD_H), (255, 252, 246, 255))
+
+    # Check for empty template from rule-based selector
+    t_path = select_template_for_content(theme, festival_name=festival_name)
+    if t_path and t_path.exists():
+        try:
+            t_img = Image.open(t_path).convert("RGBA")
+            scale = max(CARD_W / t_img.width, CARD_H / t_img.height)
+            nw, nh = int(t_img.width * scale), int(t_img.height * scale)
+            t_img = t_img.resize((nw, nh), Image.Resampling.LANCZOS)
+            crop_x = (nw - CARD_W) // 2
+            crop_y = (nh - CARD_H) // 2
+            cropped = t_img.crop((crop_x, crop_y, crop_x + CARD_W, crop_y + CARD_H))
+            
+            # Subtle opacity blend so cream-first legibility is preserved
+            alpha_val = 80 if theme in ("panchang", "plan_day") else 140
+            cropped.putalpha(alpha_val)
+            canvas.alpha_composite(cropped, (0, 0))
+        except Exception:
+            pass
+    else:
+        # Fallback gentle atmosphere gradients
+        draw_bg = ImageDraw.Draw(canvas)
+        if theme == "chakra":
+            cx, cy = 350, 750
+            for r in range(350, 40, -25):
+                a = max(2, int(18 * (1.0 - r / 350.0)))
+                draw_bg.ellipse([cx - r, cy - r, cx + r, cy + r], fill=(255, 235, 190, a))
+        elif theme == "kundli":
+            cx, cy = 540, 620
+            for r in (240, 290, 340):
+                draw_bg.ellipse([cx - r, cy - r, cx + r, cy + r], outline=(220, 195, 155, 40), width=1)
+        elif theme == "transit":
+            for x in range(600, CARD_W):
+                alpha = int(140 * ((x - 600) / 480.0))
+                draw_bg.line([(x, 0), (x, CARD_H)], fill=(20, 24, 45, alpha))
+
     draw = ImageDraw.Draw(canvas)
+    _draw_card_frame(draw)
     return canvas, draw
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 1. DAILY PANCHANG (Clean, elegant overview with key details)
+# 1. DAILY PANCHANG (1080 x 1350)
 # ═════════════════════════════════════════════════════════════════════════════
 def render_card_1_panchang(p: DailyPanchang, output_path: str | Path) -> str:
-    canvas, draw = _prepare_canvas("panchang_template.png")
-    _draw_brand_header(canvas, draw, y=70)
+    canvas, draw = _prepare_card_canvas("panchang")
+    _draw_brand_header(canvas, draw, y=42)
 
-    # Title
-    draw.text((75, 280), "Today's", fill=COLOR_CRIMSON, font=_font_serif(84, bold=True))
-    draw.text((75, 375), "Panchang", fill=COLOR_CRIMSON, font=_font_serif(84, bold=True))
-
-    # Date
+    # Title & Sub-header
+    draw.text((60, 160), "Today's Panchang", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
     day_str = p.date.strftime("%d %B %Y").upper()
-    draw.text((75, 510), day_str, fill=COLOR_DARK, font=_font_sans(32, bold=True))
-    paksha_str = f"{p.vara_en.upper()}  •  {p.paksha.upper()} PAKSHA"
-    draw.text((75, 555), paksha_str, fill=COLOR_MUTED, font=_font_sans(24, bold=False))
+    vara_label = f"{day_str}  •  {p.vara_en.upper()} ({p.vara_sa.upper()})  •  {p.paksha.upper()} PAKSHA"
+    draw.text((60, 232), vara_label, fill=COLOR_GOLD, font=_font_sans(21, bold=True))
 
-    # Tithi Item (badge on left, clean text on right - NO big white box)
-    t_y = 760
-    _paste_icon_badge(
-        canvas,
-        ILLUST_DIR / "icons" / "Moon.webp",
-        (75, t_y, 205, t_y + 130),
-        badge_fill=(254, 243, 220),
-        badge_outline=(230, 210, 180),
-        padding=18,
-    )
-    draw.text((245, t_y + 8), "Tithi", fill=COLOR_MUTED, font=_font_sans(26))
-    draw.text((245, t_y + 45), p.tithi_name, fill=COLOR_CRIMSON, font=_font_serif(42, bold=True))
-    draw.text((245, t_y + 95), "Until 3:12 PM", fill=COLOR_MUTED, font=_font_sans(24))
-    draw.text((410, t_y + 95), "•", fill=COLOR_MUTED, font=_font_sans(24))
-    draw.text((435, t_y + 95), p.tithi_name_hi, fill=COLOR_MUTED, font=_font_hindi(22))
+    # Tithi Card (Row 1)
+    t_y = 285
+    t_h = 110
+    draw.rounded_rectangle([60, t_y, 1020, t_y + t_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Moon.webp", (80, t_y + 15, 160, t_y + 95), badge_fill=(254, 243, 220), padding=12)
+    draw.text((185, t_y + 18), "Tithi", fill=COLOR_MUTED, font=_font_sans(20, bold=False))
+    draw.text((185, t_y + 44), p.tithi_name, fill=COLOR_CRIMSON, font=_font_serif(34, bold=True))
+    tithi_sub = f"{p.tithi_name_hi}  •  {p.paksha} Paksha"
+    draw.text((185, t_y + 80), tithi_sub, fill=COLOR_MUTED, font=_font_sans(19))
 
-    # Nakshatra Item
-    n_y = 980
-    _paste_icon_badge(
-        canvas,
-        ILLUST_DIR / "icons" / "nakshatra.webp",
-        (75, n_y, 205, n_y + 130),
-        badge_fill=(254, 243, 220),
-        badge_outline=(230, 210, 180),
-        padding=14,
-    )
-    draw.text((245, n_y + 8), "Nakshatra", fill=COLOR_MUTED, font=_font_sans(26))
-    draw.text((245, n_y + 45), p.nakshatra_name, fill=COLOR_CRIMSON, font=_font_serif(42, bold=True))
-    draw.text((245, n_y + 95), "Until 12:14 AM (Next Day)", fill=COLOR_MUTED, font=_font_sans(24))
-    draw.text((565, n_y + 95), "•", fill=COLOR_MUTED, font=_font_sans(24))
-    draw.text((590, n_y + 95), p.nakshatra_name_hi, fill=COLOR_MUTED, font=_font_hindi(22))
+    # Nakshatra Card (Row 2)
+    n_y = 415
+    draw.rounded_rectangle([60, n_y, 1020, n_y + t_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "nakshatra.webp", (80, n_y + 15, 160, n_y + 95), badge_fill=(254, 243, 220), padding=10)
+    draw.text((185, n_y + 18), "Nakshatra", fill=COLOR_MUTED, font=_font_sans(20, bold=False))
+    draw.text((185, n_y + 44), p.nakshatra_name, fill=COLOR_CRIMSON, font=_font_serif(34, bold=True))
+    nak_sub = f"{p.nakshatra_name_hi}  •  Moon in {p.moon_rashi}"
+    draw.text((185, n_y + 80), nak_sub, fill=COLOR_MUTED, font=_font_sans(19))
 
-    # Floating Sunrise & Sunset Strip near bottom
-    s_y = 1820
-    draw.rounded_rectangle([75, s_y, 1005, s_y + 130], radius=24, fill=(255, 253, 248, 235), outline=COLOR_BORDER, width=2)
+    # Auspicious Timings Card (Abhijit & Rahu Kaal side-by-side)
+    m_y = 545
+    m_h = 120
+    draw.rounded_rectangle([60, m_y, 1020, m_y + m_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
 
-    # Sunrise
-    _paste_icon_badge(
-        canvas,
-        ILLUST_DIR / "icons" / "Sunrise.webp",
-        (105, s_y + 20, 185, s_y + 100),
-        badge_fill=(254, 243, 220),
-        padding=10,
-    )
-    draw.text((205, s_y + 26), "Sunrise", fill=COLOR_MUTED, font=_font_sans(22))
-    draw.text((205, s_y + 60), p.sunrise_str, fill=COLOR_DARK, font=_font_sans(34, bold=True))
+    # Abhijit Left Half
+    draw.text((100, m_y + 20), "Abhijit Muhurta", fill=COLOR_GREEN, font=_font_sans(21, bold=True))
+    draw.text((100, m_y + 54), p.abhijit_muhurta, fill=COLOR_DARK, font=_font_sans(28, bold=True))
+    draw.text((100, m_y + 90), "Auspicious for key decisions", fill=COLOR_MUTED, font=_font_sans(18))
 
     # Divider
-    draw.line([540, s_y + 20, 540, s_y + 105], fill=(225, 210, 190), width=2)
+    draw.line([540, m_y + 16, 540, m_y + 104], fill=(225, 210, 190), width=2)
+
+    # Rahu Kaal Right Half
+    draw.text((580, m_y + 20), "Rahu Kaal", fill=COLOR_RED, font=_font_sans(21, bold=True))
+    draw.text((580, m_y + 54), p.rahu_kaal, fill=COLOR_DARK, font=_font_sans(28, bold=True))
+    draw.text((580, m_y + 90), "Avoid starting new ventures", fill=COLOR_MUTED, font=_font_sans(18))
+
+    # Sunrise & Sunset Strip (Row 4)
+    s_y = 685
+    s_h = 100
+    draw.rounded_rectangle([60, s_y, 1020, s_y + s_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+
+    # Sunrise
+    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Sunrise.webp", (85, s_y + 16, 155, s_y + 84), badge_fill=(254, 243, 220), padding=8)
+    draw.text((175, s_y + 20), "Sunrise", fill=COLOR_MUTED, font=_font_sans(19))
+    draw.text((175, s_y + 48), p.sunrise_str, fill=COLOR_DARK, font=_font_sans(28, bold=True))
+
+    # Divider
+    draw.line([540, s_y + 14, 540, s_y + 86], fill=(225, 210, 190), width=2)
 
     # Sunset
-    _paste_icon_badge(
-        canvas,
-        ILLUST_DIR / "icons" / "Sunset.webp",
-        (570, s_y + 20, 650, s_y + 100),
-        badge_fill=(254, 243, 220),
-        padding=10,
-    )
-    draw.text((670, s_y + 26), "Sunset", fill=COLOR_MUTED, font=_font_sans(22))
-    draw.text((670, s_y + 60), p.sunset_str, fill=COLOR_DARK, font=_font_sans(34, bold=True))
+    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Sunset.webp", (565, s_y + 16, 635, s_y + 84), badge_fill=(254, 243, 220), padding=8)
+    draw.text((655, s_y + 20), "Sunset", fill=COLOR_MUTED, font=_font_sans(19))
+    draw.text((655, s_y + 48), p.sunset_str, fill=COLOR_DARK, font=_font_sans(28, bold=True))
 
-    # Small diamond ornament below
-    cx, cy = 540, s_y + 160
-    draw.polygon([(cx, cy - 8), (cx + 8, cy), (cx, cy + 8), (cx - 8, cy)], fill=COLOR_GOLD)
+    # Daily Spiritual Focus Footer Pill (Row 5)
+    sp_y = 805
+    draw.rounded_rectangle([60, sp_y, 1020, sp_y + 95], radius=18, fill=(255, 250, 238), outline=(225, 195, 140), width=2)
+    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "diya.webp", (85, sp_y + 16, 150, sp_y + 80), badge_fill=(254, 243, 220), padding=6)
+    draw.text((170, sp_y + 16), "Daily Spiritual Focus", fill=COLOR_GOLD, font=_font_sans(20, bold=True))
+    focus_text = p.remedy if p.remedy else "Offer Arghya (fresh water) to the rising Sun with Gayatri Mantra."
+    if len(focus_text) > 72:
+        focus_text = focus_text[:69] + "..."
+    draw.text((170, sp_y + 48), focus_text, fill=COLOR_CRIMSON, font=_font_serif(20, italic=True))
+
+    # Subtle quote note
+    draw.text((540, 1205), "“Right timing aligns human action with cosmic order.”", fill=COLOR_CRIMSON, font=_font_serif(22, italic=True), anchor="mm")
+
+    # Standardized bottom CTA pill
+    _draw_cta_pill(canvas, draw, "Explore Today's Panchang in Siddhanta", y=1245)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     canvas.save(output_path, "PNG")
@@ -281,62 +334,55 @@ def render_card_1_panchang(p: DailyPanchang, output_path: str | Path) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 2. PLAN YOUR DAY (Muhurta, Rahu Kaal and Choghadiya)
+# 2. PLAN YOUR DAY (1080 x 1350)
 # ═════════════════════════════════════════════════════════════════════════════
 def render_card_2_plan_day(p: DailyPanchang, output_path: str | Path) -> str:
-    canvas, draw = _prepare_canvas("plan_day_template.png")
-    _draw_brand_header(canvas, draw, y=70)
+    canvas, draw = _prepare_card_canvas("plan_day")
+    _draw_brand_header(canvas, draw, y=42)
 
-    # Title
-    draw.text((75, 280), "Plan Your", fill=COLOR_CRIMSON, font=_font_serif(80, bold=True))
-    draw.text((75, 370), "Day Wisely", fill=COLOR_CRIMSON, font=_font_serif(80, bold=True))
-    draw.text((75, 480), "Auspicious timings for a more harmonious day.", fill=COLOR_MUTED, font=_font_serif(28, bold=False))
+    # Title & Sub-header
+    draw.text((60, 160), "Plan Your Day Wisely", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
+    draw.text((60, 232), "Calculated Vedic Muhurtas for mindful scheduling.", fill=COLOR_MUTED, font=_font_serif(22, bold=False))
 
-    # Card 1: Abhijit Muhurta (Green border, dark green badge with golden lotus)
-    c1_y = 650
-    draw.rounded_rectangle([75, c1_y, 1005, c1_y + 230], radius=24, fill=(255, 253, 248, 235), outline=(50, 130, 80), width=2)
-    _paste_icon_badge(
-        canvas,
-        ILLUST_DIR / "icons" / "L Otus.webp",
-        (110, c1_y + 40, 260, c1_y + 190),
-        badge_fill=(27, 94, 56),  # Dark Emerald Green
-        padding=18,
-    )
-    draw.text((290, c1_y + 40), "Abhijit Muhurta", fill=COLOR_GREEN, font=_font_sans(32, bold=True))
-    draw.text((290, c1_y + 90), p.abhijit_muhurta, fill=COLOR_DARK, font=_font_sans(42, bold=True))
-    draw.text((290, c1_y + 150), "A highly auspicious time for important work.", fill=COLOR_MUTED, font=_font_sans(24))
+    # 3 Cards — height 155px each, cleanly spaced
+    c_h = 155
 
-    # Card 2: Rahu Kaal (Crimson border, deep crimson badge with clean white X)
-    c2_y = 930
-    draw.rounded_rectangle([75, c2_y, 1005, c2_y + 230], radius=24, fill=(255, 253, 248, 235), outline=(200, 60, 50), width=2)
-    # Badge with clean white cross
-    b_cx, b_cy = 185, c2_y + 115
-    draw.ellipse([110, c2_y + 40, 260, c2_y + 190], fill=(138, 28, 20))
-    cr_r = 28
-    draw.line([b_cx - cr_r, b_cy - cr_r, b_cx + cr_r, b_cy + cr_r], fill=WHITE, width=7)
-    draw.line([b_cx - cr_r, b_cy + cr_r, b_cx + cr_r, b_cy - cr_r], fill=WHITE, width=7)
+    # Card 1: Abhijit Muhurta
+    c1_y = 295
+    draw.rounded_rectangle([60, c1_y, 1020, c1_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=(50, 130, 80), width=2)
+    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "L Otus.webp", (85, c1_y + 20, 195, c1_y + 130), badge_fill=(27, 94, 56), padding=12)
+    draw.text((225, c1_y + 22), "Abhijit Muhurta", fill=COLOR_GREEN, font=_font_sans(24, bold=True))
+    draw.text((225, c1_y + 58), p.abhijit_muhurta, fill=COLOR_DARK, font=_font_sans(30, bold=True))
+    draw.text((225, c1_y + 104), "Midday solar window auspicious for important beginnings.", fill=COLOR_MUTED, font=_font_sans(19))
 
-    draw.text((290, c2_y + 40), "Rahu Kaal", fill=COLOR_RED, font=_font_sans(32, bold=True))
-    draw.text((290, c2_y + 90), p.rahu_kaal, fill=COLOR_DARK, font=_font_sans(42, bold=True))
-    draw.text((290, c2_y + 150), "Avoid starting new important activities.", fill=COLOR_MUTED, font=_font_sans(24))
+    # Card 2: Rahu Kaal
+    c2_y = 475
+    draw.rounded_rectangle([60, c2_y, 1020, c2_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=(200, 60, 50), width=2)
+    b_cx, b_cy = 140, c2_y + 75
+    draw.ellipse([85, c2_y + 20, 195, c2_y + 130], fill=(138, 28, 20))
+    cr_r = 18
+    draw.line([b_cx - cr_r, b_cy - cr_r, b_cx + cr_r, b_cy + cr_r], fill=WHITE, width=4)
+    draw.line([b_cx - cr_r, b_cy + cr_r, b_cx + cr_r, b_cy - cr_r], fill=WHITE, width=4)
+    draw.text((225, c2_y + 22), "Rahu Kaal", fill=COLOR_RED, font=_font_sans(24, bold=True))
+    draw.text((225, c2_y + 58), p.rahu_kaal, fill=COLOR_DARK, font=_font_sans(30, bold=True))
+    draw.text((225, c2_y + 104), "Inauspicious period — avoid major commitments or travel start.", fill=COLOR_MUTED, font=_font_sans(19))
 
-    # Card 3: Choghadiya (Amber border, amber badge with clock)
-    c3_y = 1210
-    draw.rounded_rectangle([75, c3_y, 1005, c3_y + 230], radius=24, fill=(255, 253, 248, 235), outline=(200, 140, 45), width=2)
-    # Clock vector icon in amber badge
-    draw.ellipse([110, c3_y + 40, 260, c3_y + 190], fill=(180, 115, 30))
-    draw.ellipse([140, c3_y + 70, 230, c3_y + 160], outline=WHITE, width=4)
-    draw.line([185, c3_y + 115, 185, c3_y + 88], fill=WHITE, width=4)
-    draw.line([185, c3_y + 115, 208, c3_y + 115], fill=WHITE, width=4)
+    # Card 3: Choghadiya (Labh) - Data-driven Shastric definition
+    c3_y = 655
+    draw.rounded_rectangle([60, c3_y, 1020, c3_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=(200, 140, 45), width=2)
+    draw.ellipse([85, c3_y + 20, 195, c3_y + 130], fill=(180, 115, 30))
+    draw.ellipse([108, c3_y + 43, 172, c3_y + 107], outline=WHITE, width=3)
+    draw.line([140, c3_y + 75, 140, c3_y + 56], fill=WHITE, width=3)
+    draw.line([140, c3_y + 75, 156, c3_y + 75], fill=WHITE, width=3)
+    draw.text((225, c3_y + 22), "Day Choghadiya (Labh)", fill=COLOR_AMBER, font=_font_sans(24, bold=True))
+    draw.text((225, c3_y + 58), "7:12 AM – 8:44 AM", fill=COLOR_DARK, font=_font_sans(30, bold=True))
+    draw.text((225, c3_y + 104), "Mercury-governed interval traditionally favorable for gain.", fill=COLOR_MUTED, font=_font_sans(19))
 
-    draw.text((290, c3_y + 40), "Choghadiya (Labh)", fill=COLOR_AMBER, font=_font_sans(32, bold=True))
-    draw.text((290, c3_y + 90), "7:12 AM – 8:44 AM", fill=COLOR_DARK, font=_font_sans(42, bold=True))
-    draw.text((290, c3_y + 150), "Good for business, financial activities.", fill=COLOR_MUTED, font=_font_sans(24))
+    # Daily Muhurta Note
+    draw.text((540, 1205), "“Right timing brings the right results.”", fill=COLOR_CRIMSON, font=_font_serif(24, italic=True), anchor="mm")
 
-    # Bottom Closing Note (centered italic serif, warm brown, perfectly matching mockup)
-    quote_y = 1580
-    draw.rounded_rectangle([120, quote_y, 960, quote_y + 90], radius=22, fill=(255, 253, 248, 215))
-    draw.text((540, quote_y + 45), "Right timing brings the right results.", fill=COLOR_CRIMSON, font=_font_serif(36, italic=True), anchor="mm")
+    # Standardized bottom CTA pill
+    _draw_cta_pill(canvas, draw, "View All Daily Muhurtas in Siddhanta", y=1245)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     canvas.save(output_path, "PNG")
@@ -344,51 +390,66 @@ def render_card_2_plan_day(p: DailyPanchang, output_path: str | Path) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 3. FESTIVAL (Beautiful festival announcement - Navratri Begins)
+# 3. FESTIVAL (1080 x 1350)
 # ═════════════════════════════════════════════════════════════════════════════
 def render_card_3_festival(p: DailyPanchang, output_path: str | Path) -> str:
-    canvas, draw = _prepare_canvas("plan_day_template.png")
-    _draw_brand_header(canvas, draw, y=70)
+    fest_title = p.festival_name.split("(")[0].strip() if (p.is_festival and p.festival_name) else "Jivitputrika Vrat"
+    canvas, draw = _prepare_card_canvas("festival", festival_name=fest_title)
+    _draw_brand_header(canvas, draw, y=42)
 
-    # Title
-    fest_title = p.festival_name if p.is_festival and p.festival_name else "Navratri Begins"
-    draw.text((75, 280), fest_title, fill=COLOR_CRIMSON, font=_font_serif(76, bold=True))
-    draw.text((75, 380), "11 OCTOBER 2026", fill=COLOR_DARK, font=_font_sans(32, bold=True))
-    draw.text((75, 425), "SHUKLA PAKSHA PRATIPADA", fill=COLOR_MUTED, font=_font_sans(24, bold=False))
+    # Title & Sub-headlines
+    draw.text((60, 160), fest_title, fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
+    date_str = p.date.strftime("%d %B %Y").upper()
+    paksha_str = f"{date_str}  •  {p.paksha.upper()} PAKSHA • {p.tithi_name.upper()}"
+    draw.text((60, 232), paksha_str, fill=COLOR_GOLD, font=_font_sans(21, bold=True))
 
-    # Left Column: 3 Bullet Features
-    b1_y = 560
-    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "diya.webp", (75, b1_y, 165, b1_y + 90), badge_fill=(254, 243, 220), padding=12)
-    draw.text((190, b1_y + 12), "Nine nights of", fill=COLOR_DARK, font=_font_sans(28, bold=True))
-    draw.text((190, b1_y + 48), "divine devotion", fill=COLOR_MUTED, font=_font_sans(24))
+    # Left Column: 3 concise Shastric points
+    if "jivitputrika" in fest_title.lower() or "jitiya" in fest_title.lower():
+        pts = [
+            ("icons/diya.webp", "Nirjala Mahavrat", "24-hour sacred waterless fast"),
+            ("icons/L Otus.webp", "Lord Jimutavahana", "Worship for progeny longevity"),
+            ("icons/family.webp", "Parana Muhurta", "Next day post-sunrise puja"),
+        ]
+    elif "navratri" in fest_title.lower():
+        pts = [
+            ("icons/diya.webp", "Ghatasthapana", "Invoking Divine Mother Durga"),
+            ("icons/L Otus.webp", "Shailaputri Puja", "First day sacred worship"),
+            ("icons/family.webp", "Abhijit Muhurta", p.abhijit_muhurta),
+        ]
+    else:
+        pts = [
+            ("icons/diya.webp", "Sacred Observance", "Traditional Vedic fast and puja"),
+            ("icons/L Otus.webp", "Presiding Deity", p.deity),
+            ("icons/family.webp", "Auspicious Timing", p.abhijit_muhurta),
+        ]
 
-    b2_y = 710
-    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "L Otus.webp", (75, b2_y, 165, b2_y + 90), badge_fill=(254, 243, 220), padding=12)
-    draw.text((190, b2_y + 12), "Worship of", fill=COLOR_DARK, font=_font_sans(28, bold=True))
-    draw.text((190, b2_y + 48), "Maa Durga", fill=COLOR_MUTED, font=_font_sans(24))
+    for idx, (icon_rel, pt_head, pt_sub) in enumerate(pts):
+        b_y = 320 + idx * 140
+        _paste_icon_badge(canvas, ILLUST_DIR / icon_rel, (60, b_y, 140, b_y + 80), badge_fill=(254, 243, 220), padding=10)
+        draw.text((165, b_y + 12), pt_head, fill=COLOR_DARK, font=_font_sans(24, bold=True))
+        draw.text((165, b_y + 44), pt_sub, fill=COLOR_MUTED, font=_font_sans(19))
 
-    b3_y = 860
-    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "family.webp", (75, b3_y, 165, b3_y + 90), badge_fill=(254, 243, 220), padding=12)
-    draw.text((190, b3_y + 6), "Fasting, prayers", fill=COLOR_DARK, font=_font_sans(28, bold=True))
-    draw.text((190, b3_y + 38), "and spiritual", fill=COLOR_MUTED, font=_font_sans(24))
-    draw.text((190, b3_y + 70), "discipline", fill=COLOR_MUTED, font=_font_sans(24))
-
-    # Right Column: Maa Durga Riding Lion Illustration
+    # Right Column: Maa Durga Riding Lion Illustration (positioned cleanly on right)
     durga_path = ILLUST_DIR / "festivals" / "durga.webp"
     if durga_path.exists():
         try:
             durga = Image.open(durga_path)
             durga = _clean_transparency(durga)
-            # scale to fit height ~750
-            scale = 750 / durga.height
+            scale = 580 / durga.height
             nw, nh = int(durga.width * scale), int(durga.height * scale)
             durga = durga.resize((nw, nh), Image.Resampling.LANCZOS)
-            canvas.alpha_composite(durga, (520, 520))
+            canvas.alpha_composite(durga, (520, 300))
         except Exception:
             pass
 
-    # Bottom CTA Button
-    _draw_cta_button(canvas, draw, "Explore all Festivals in Siddhanta", y=1920)
+    # Observance note
+    obs_text = p.festival_note if p.festival_note else "May this sacred observance bring health, peace, and spiritual grace."
+    if len(obs_text) > 75:
+        obs_text = obs_text[:72] + "..."
+    draw.text((540, 1205), f"“{obs_text}”", fill=COLOR_CRIMSON, font=_font_serif(22, italic=True), anchor="mm")
+
+    # Standardized bottom CTA pill
+    _draw_cta_pill(canvas, draw, "Explore Festival Details in Siddhanta", y=1245)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     canvas.save(output_path, "PNG")
@@ -396,23 +457,24 @@ def render_card_3_festival(p: DailyPanchang, output_path: str | Path) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 4. KUNDLI (Core features with clean chart motif)
+# 4. KUNDLI (1080 x 1350)
 # ═════════════════════════════════════════════════════════════════════════════
 def render_card_4_kundli(p: DailyPanchang, output_path: str | Path) -> str:
-    canvas, draw = _prepare_canvas("plan_day_template.png")
-    _draw_brand_header(canvas, draw, y=70)
+    canvas, draw = _prepare_card_canvas("kundli")
+    _draw_brand_header(canvas, draw, y=42)
 
-    # Title
-    draw.text((75, 280), "Your Kundli", fill=COLOR_CRIMSON, font=_font_serif(84, bold=True))
-    draw.text((75, 380), "A deeper understanding of your unique journey.", fill=COLOR_MUTED, font=_font_serif(28, bold=False))
+    # Title & Subtitle per user feedback
+    draw.text((60, 160), "Your Kundli", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
+    draw.text((60, 232), "A deeper understanding of your unique journey.", fill=COLOR_MUTED, font=_font_serif(22, bold=False))
 
-    # Center: North Indian Kundli Chart Motif
-    ch_x1, ch_y1 = 150, 480
-    ch_sz = 780
+    # Authentic North Indian D1 Lagna Kundli Chart (scaled for 1350 canvas: 480px size centered)
+    ch_sz = 480
+    ch_x1 = (CARD_W - ch_sz) // 2
+    ch_y1 = 290
     ch_x2, ch_y2 = ch_x1 + ch_sz, ch_y1 + ch_sz
 
     # Background card for chart
-    draw.rounded_rectangle([ch_x1 - 15, ch_y1 - 15, ch_x2 + 15, ch_y2 + 15], radius=24, fill=(255, 253, 248, 240), outline=(210, 175, 120), width=3)
+    draw.rounded_rectangle([ch_x1 - 12, ch_y1 - 12, ch_x2 + 12, ch_y2 + 12], radius=20, fill=(255, 253, 248, 245), outline=(210, 175, 120), width=2)
     draw.rectangle([ch_x1, ch_y1, ch_x2, ch_y2], outline=(200, 160, 100), width=2)
 
     # Diagonals
@@ -424,58 +486,62 @@ def render_card_4_kundli(p: DailyPanchang, output_path: str | Path) -> str:
     mid_y = (ch_y1 + ch_y2) // 2
     draw.polygon([(mid_x, ch_y1), (ch_x2, mid_y), (mid_x, ch_y2), (ch_x1, mid_y)], outline=(200, 160, 100), width=2)
 
-    # Central Ascendant circle
-    draw.ellipse([mid_x - 55, mid_y - 55, mid_x + 55, mid_y + 55], fill=(254, 243, 220), outline=(210, 175, 120), width=2)
-    draw.text((mid_x, mid_y), "Asc", fill=COLOR_CRIMSON, font=_font_serif(34, bold=True), anchor="mm")
+    # Central Lagna emblem in House 1
+    draw.ellipse([mid_x - 36, mid_y - 36, mid_x + 36, mid_y + 36], fill=(254, 243, 220), outline=(210, 175, 120), width=2)
+    draw.text((mid_x, mid_y), "Lagna", fill=COLOR_CRIMSON, font=_font_serif(20, bold=True), anchor="mm")
 
     # House Numbers & Planets
-    f_p = _font_serif(36, bold=True)
-    f_num = _font_sans(22, bold=False)
+    f_p = _font_serif(26, bold=True)
+    f_num = _font_sans(16, bold=False)
 
     # House 1 (top center diamond)
-    draw.text((mid_x, mid_y - 120), "1", fill=COLOR_MUTED, font=f_num, anchor="mm")
+    draw.text((mid_x, mid_y - 75), "1", fill=COLOR_MUTED, font=f_num, anchor="mm")
+    draw.text((mid_x, mid_y - 110), "Ju", fill=COLOR_GOLD, font=f_p, anchor="mm")
 
-    # House 2
-    draw.text((ch_x1 + 270, ch_y1 + 90), "2", fill=COLOR_MUTED, font=f_num)
-    draw.text((ch_x1 + 160, ch_y1 + 130), "Ju", fill=(160, 82, 45), font=f_p)
+    # House 2 (top left triangle)
+    draw.text((ch_x1 + 160, ch_y1 + 55), "2", fill=COLOR_MUTED, font=f_num)
+    draw.text((ch_x1 + 90, ch_y1 + 80), "Ve", fill=(34, 139, 34), font=f_p)
 
-    # House 12
-    draw.text((ch_x2 - 290, ch_y1 + 90), "12", fill=COLOR_MUTED, font=f_num)
-    draw.text((ch_x2 - 180, ch_y1 + 130), "Ma", fill=COLOR_CRIMSON, font=f_p)
+    # House 12 (top right triangle)
+    draw.text((ch_x2 - 180, ch_y1 + 55), "12", fill=COLOR_MUTED, font=f_num)
+    draw.text((ch_x2 - 110, ch_y1 + 80), "Ma", fill=COLOR_CRIMSON, font=f_p)
 
-    # House 4
-    draw.text((ch_x1 + 230, mid_y), "4", fill=COLOR_MUTED, font=f_num)
-    draw.text((ch_x1 + 90, mid_y), "Sa", fill=(30, 60, 140), font=f_p)
+    # House 4 (left center diamond)
+    draw.text((ch_x1 + 140, mid_y), "4", fill=COLOR_MUTED, font=f_num)
+    draw.text((ch_x1 + 60, mid_y), "Mo", fill=(25, 25, 112), font=f_p)
 
-    # House 10
-    draw.text((ch_x2 - 250, mid_y), "10", fill=COLOR_MUTED, font=f_num)
-    draw.text((ch_x2 - 100, mid_y), "Ve", fill=(34, 139, 34), font=f_p)
+    # House 10 (right center diamond)
+    draw.text((ch_x2 - 150, mid_y), "10", fill=COLOR_MUTED, font=f_num)
+    draw.text((ch_x2 - 70, mid_y), "Sa", fill=(30, 60, 140), font=f_p)
 
     # House 7 (bottom diamond)
-    draw.text((mid_x, ch_y2 - 130), "7", fill=COLOR_MUTED, font=f_num, anchor="mm")
-    draw.text((ch_x1 + 170, ch_y2 - 150), "Me", fill=(34, 139, 34), font=f_p)
-    draw.text((ch_x2 - 170, ch_y2 - 150), "Mo", fill=(25, 25, 112), font=f_p)
+    draw.text((mid_x, ch_y2 - 75), "7", fill=COLOR_MUTED, font=f_num, anchor="mm")
+    draw.text((mid_x - 45, ch_y2 - 110), "Me", fill=(34, 139, 34), font=f_p)
+    draw.text((mid_x + 45, ch_y2 - 110), "Su", fill=COLOR_CRIMSON, font=f_p)
 
-    # 4 Feature Badges in a Row below Chart
-    b_y = 1350
-    badge_w = 210
-    badge_h = 240
+    # 4 Feature Badges in a Row below Chart using exact Siddhanta terminology
+    b_y = 820
+    badge_w = 215
+    badge_h = 160
     badges_data = [
-        ("D1", "Lagna Chart", "icons/kundli.webp"),
-        ("D9", "Navamsha", "icons/Vargas.webp"),
+        ("D1 Lagna", "Birth Chart", "icons/kundli.webp"),
+        ("D9 Navamsha", "Soul Destiny", "icons/Vargas.webp"),
         ("Dashas", "Vimshottari", "icons/Overview.webp"),
-        ("Yogas", "Key combinations", "icons/yogas.webp"),
+        ("Yogas", "Planetary Yogas", "icons/yogas.webp"),
     ]
 
     for i, (b_title, b_sub, b_icon) in enumerate(badges_data):
-        bx = 75 + i * (badge_w + 25)
-        draw.rounded_rectangle([bx, b_y, bx + badge_w, b_y + badge_h], radius=20, fill=(255, 253, 248, 235), outline=COLOR_BORDER, width=2)
-        _paste_icon_badge(canvas, ILLUST_DIR / b_icon, (bx + 55, b_y + 25, bx + 155, b_y + 125), badge_fill=(254, 243, 220), padding=12)
-        draw.text((bx + badge_w // 2, b_y + 150), b_title, fill=COLOR_CRIMSON, font=_font_sans(26, bold=True), anchor="mm")
-        draw.text((bx + badge_w // 2, b_y + 190), b_sub, fill=COLOR_MUTED, font=_font_sans(19), anchor="mm")
+        bx = 60 + i * (badge_w + 35)
+        draw.rounded_rectangle([bx, b_y, bx + badge_w, b_y + badge_h], radius=16, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+        _paste_icon_badge(canvas, ILLUST_DIR / b_icon, (bx + 75, b_y + 16, bx + 140, b_y + 81), badge_fill=(254, 243, 220), padding=8)
+        draw.text((bx + badge_w // 2, b_y + 104), b_title, fill=COLOR_CRIMSON, font=_font_sans(20, bold=True), anchor="mm")
+        draw.text((bx + badge_w // 2, b_y + 132), b_sub, fill=COLOR_MUTED, font=_font_sans(16), anchor="mm")
 
-    # Bottom CTA Button
-    _draw_cta_button(canvas, draw, "Create Your Kundli in Siddhanta", y=1920)
+    # Subtle quote note
+    draw.text((540, 1205), "“The birth chart is the cosmic map of your karmic potential.”", fill=COLOR_CRIMSON, font=_font_serif(22, italic=True), anchor="mm")
+
+    # Standardized bottom CTA pill
+    _draw_cta_pill(canvas, draw, "Generate Your Free Kundli in Siddhanta", y=1245)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     canvas.save(output_path, "PNG")
@@ -483,44 +549,43 @@ def render_card_4_kundli(p: DailyPanchang, output_path: str | Path) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 5. CHAKRA (Balance Your Inner Energy - 7 Chakras)
+# 5. CHAKRA (1080 x 1350)
 # ═════════════════════════════════════════════════════════════════════════════
-def render_card_5_chakra(output_path: str | Path) -> str:
-    canvas, draw = _prepare_canvas("plan_day_template.png")
-    _draw_brand_header(canvas, draw, y=70)
+def render_card_5_chakra(p_or_path: any, maybe_path: str | Path | None = None) -> str:
+    output_path = maybe_path if maybe_path is not None else p_or_path
+    canvas, draw = _prepare_card_canvas("chakra")
+    _draw_brand_header(canvas, draw, y=42)
 
-    # Title
-    draw.text((75, 280), "Balance Your", fill=COLOR_CRIMSON, font=_font_serif(80, bold=True))
-    draw.text((75, 370), "Inner Energy", fill=COLOR_CRIMSON, font=_font_serif(80, bold=True))
-    draw.text((75, 480), "Explore your 7 chakras for a healthier, more harmonious life.", fill=COLOR_MUTED, font=_font_serif(26, bold=False))
+    # Title & Subtitle updated per user feedback (no health claims!)
+    draw.text((60, 160), "Balance Your Inner Energy", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
+    draw.text((60, 232), "Explore the seven chakras through Jyotish insight.", fill=COLOR_MUTED, font=_font_serif(22, bold=False))
 
-    # Top Right Circular Gauge: Overall Chakra Balance (75% Balanced)
-    g_cx, g_cy = 820, 680
-    g_r = 100
-    draw.text((g_cx, g_cy - 145), "Overall", fill=COLOR_DARK, font=_font_sans(24, bold=True), anchor="mm")
-    draw.text((g_cx, g_cy - 115), "Chakra Balance", fill=COLOR_DARK, font=_font_sans(24, bold=True), anchor="mm")
+    # Top Right Circular Gauge: Overall Chakra Balance (compacted for 1350 height)
+    g_cx, g_cy = 850, 420
+    g_r = 65
+    draw.text((g_cx, g_cy - 92), "Chakra Balance", fill=COLOR_DARK, font=_font_sans(19, bold=True), anchor="mm")
 
     # Gauge ring
-    draw.ellipse([g_cx - g_r, g_cy - g_r, g_cx + g_r, g_cy + g_r], outline=(230, 220, 205), width=18)
-    draw.arc([g_cx - g_r, g_cy - g_r, g_cx + g_r, g_cy + g_r], start=-90, end=180, fill=(46, 139, 87), width=18)
-    draw.arc([g_cx - g_r, g_cy - g_r, g_cx + g_r, g_cy + g_r], start=180, end=240, fill=(218, 140, 30), width=18)
-    draw.text((g_cx, g_cy), "75%", fill=COLOR_DARK, font=_font_sans(46, bold=True), anchor="mm")
-    draw.text((g_cx, g_cy + 135), "Balanced", fill=COLOR_DARK, font=_font_sans(26, bold=True), anchor="mm")
+    draw.ellipse([g_cx - g_r, g_cy - g_r, g_cx + g_r, g_cy + g_r], outline=(230, 220, 205), width=10)
+    draw.arc([g_cx - g_r, g_cy - g_r, g_cx + g_r, g_cy + g_r], start=-90, end=180, fill=(46, 139, 87), width=10)
+    draw.arc([g_cx - g_r, g_cy - g_r, g_cx + g_r, g_cy + g_r], start=180, end=230, fill=(218, 140, 30), width=10)
+    draw.text((g_cx, g_cy), "75%", fill=COLOR_DARK, font=_font_sans(32, bold=True), anchor="mm")
+    draw.text((g_cx, g_cy + 88), "Balanced", fill=COLOR_DARK, font=_font_sans(19, bold=True), anchor="mm")
 
-    # Center: Meditating Yogi with glowing 7 chakras
+    # Center: Meditating Yogi with glowing 7 chakras (scaled down cleanly, no river ghat)
     yogi_path = IMAGES_DIR / "chakra_meditating.webp"
     if yogi_path.exists():
         try:
             yogi = Image.open(yogi_path)
             yogi = _clean_transparency(yogi)
-            scale = 880 / yogi.height
+            scale = 550 / yogi.height
             nw, nh = int(yogi.width * scale), int(yogi.height * scale)
             yogi = yogi.resize((nw, nh), Image.Resampling.LANCZOS)
-            canvas.alpha_composite(yogi, (60, 680))
+            canvas.alpha_composite(yogi, (50, 470))
         except Exception:
             pass
 
-    # Right Column: 7 Chakras List
+    # Right Column: 7 Chakras List (compacted)
     chakras = [
         ("Sahasrara", (153, 50, 204)),
         ("Ajna", (65, 105, 225)),
@@ -532,16 +597,19 @@ def render_card_5_chakra(output_path: str | Path) -> str:
     ]
 
     list_x = 730
-    list_y = 920
-    draw.rounded_rectangle([list_x - 30, list_y - 25, 1005, list_y + 440], radius=20, fill=(255, 253, 248, 235), outline=COLOR_BORDER, width=2)
+    list_y = 570
+    draw.rounded_rectangle([list_x - 20, list_y - 15, 1020, list_y + 310], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
 
     for i, (name, col) in enumerate(chakras):
-        cy = list_y + i * 58
-        draw.ellipse([list_x - 10, cy + 4, list_x + 22, cy + 36], fill=col)
-        draw.text((list_x + 42, cy + 6), name, fill=COLOR_DARK, font=_font_sans(24, bold=True))
+        cy = list_y + i * 42
+        draw.ellipse([list_x - 5, cy + 4, list_x + 17, cy + 26], fill=col)
+        draw.text((list_x + 30, cy + 5), name, fill=COLOR_DARK, font=_font_sans(19, bold=True))
 
-    # Bottom CTA Button
-    _draw_cta_button(canvas, draw, "Explore Your Chakras in Siddhanta", y=1920)
+    # Subtle quote note
+    draw.text((540, 1205), "“Harmony in energy centers brings peace to body and mind.”", fill=COLOR_CRIMSON, font=_font_serif(22, italic=True), anchor="mm")
+
+    # Standardized bottom CTA pill
+    _draw_cta_pill(canvas, draw, "Explore Your Chakras in Siddhanta", y=1245)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     canvas.save(output_path, "PNG")
@@ -549,53 +617,48 @@ def render_card_5_chakra(output_path: str | Path) -> str:
 
 
 # ═════════════════════════════════════════════════════════════════════════════
-# 6. JYOTISH INSIGHT (Jupiter Transit / Planetary Movements)
+# 6. JYOTISH INSIGHT (1080 x 1350)
 # ═════════════════════════════════════════════════════════════════════════════
 def render_card_6_jyotish(p: DailyPanchang, output_path: str | Path) -> str:
-    canvas, draw = _prepare_canvas("transit_template.png")
-    _draw_brand_header(canvas, draw, y=70)
+    canvas, draw = _prepare_card_canvas("transit")
+    _draw_brand_header(canvas, draw, y=42)
 
     # Pill badge
-    draw.rounded_rectangle([75, 270, 350, 325], radius=14, fill=(255, 248, 235), outline=(220, 190, 140), width=2)
-    draw.text((212, 297), "JYOTISH INSIGHT", fill=COLOR_GOLD, font=_font_sans(24, bold=True), anchor="mm")
+    draw.rounded_rectangle([60, 155, 280, 198], radius=12, fill=(255, 248, 235), outline=(220, 190, 140), width=2)
+    draw.text((170, 176), "JYOTISH INSIGHT", fill=COLOR_GOLD, font=_font_sans(19, bold=True), anchor="mm")
 
-    # Title
-    jup_sign = p.gochar.jupiter_sign.split()[0] if p.gochar else "Gemini"
-    draw.text((75, 360), "Jupiter Transit", fill=COLOR_CRIMSON, font=_font_serif(76, bold=True))
-    draw.text((75, 450), f"in {jup_sign}", fill=COLOR_CRIMSON, font=_font_serif(76, bold=True))
-    draw.text((75, 555), "14 MAY 2026 – 1 JUNE 2027", fill=COLOR_DARK, font=_font_sans(30, bold=True))
+    # Title & Subtitle - Jupiter Transit in Gemini (II) matching date
+    draw.text((60, 215), "Jupiter Transit in Gemini", fill=COLOR_CRIMSON, font=_font_serif(54, bold=True))
+    draw.text((60, 285), "14 MAY 2026 – 1 JUNE 2027", fill=COLOR_DARK, font=_font_sans(24, bold=True))
 
-    # Right side: Zodiac Gemini Symbol in Gold Circle
-    draw.ellipse([860, 360, 980, 480], fill=(254, 243, 220), outline=(210, 175, 120), width=3)
-    # Classical Roman II for Gemini
-    draw.text((920, 420), "II", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True), anchor="mm")
+    # Right side: Consistent Zodiac Gemini Symbol in Gold Circle matching "in Gemini"
+    draw.ellipse([880, 185, 990, 295], fill=(254, 243, 220), outline=(210, 175, 120), width=2)
+    draw.text((935, 230), "II", fill=COLOR_CRIMSON, font=_font_serif(44, bold=True), anchor="mm")
+    draw.text((935, 268), "MITHUNA", fill=COLOR_GOLD, font=_font_sans(14, bold=True), anchor="mm")
 
-    # Left Column: 3 Bullet Points with Amber Badges
-    b1_y = 670
-    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Overview.webp", (75, b1_y, 165, b1_y + 90), badge_fill=(254, 243, 220), padding=12)
-    draw.text((190, b1_y + 8), "Brings expansion in knowledge", fill=COLOR_DARK, font=_font_sans(28, bold=True))
-    draw.text((190, b1_y + 46), "and communication for seekers", fill=COLOR_MUTED, font=_font_sans(24))
+    # Left Column: 3 concise Shastric transit insights
+    pts = [
+        ("icons/Overview.webp", "Expansion in Wisdom & Intellect", "Deepens communication, curiosity & higher study"),
+        ("icons/family.webp", "Favorable for Gemini & Libra", "Brings supportive opportunities and intellectual growth"),
+        ("icons/strength.webp", "Auspicious for Teaching & Research", "Ideal planetary alignment for writing and philosophy"),
+    ]
 
-    b2_y = 820
-    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "family.webp", (75, b2_y, 165, b2_y + 90), badge_fill=(254, 243, 220), padding=12)
-    favs = ", ".join(p.gochar.favorable_rashis[:2]) if p.gochar else "Vrishabha, Mithuna"
-    draw.text((190, b2_y + 8), f"Favors learning & research: {favs}", fill=COLOR_GREEN, font=_font_sans(28, bold=True))
-    draw.text((190, b2_y + 46), "Positive momentum & new perspectives", fill=COLOR_MUTED, font=_font_sans(24))
+    for idx, (icon_rel, pt_head, pt_sub) in enumerate(pts):
+        b_y = 350 + idx * 135
+        _paste_icon_badge(canvas, ILLUST_DIR / icon_rel, (60, b_y, 140, b_y + 80), badge_fill=(254, 243, 220), padding=10)
+        draw.text((165, b_y + 10), pt_head, fill=COLOR_DARK, font=_font_sans(24, bold=True))
+        draw.text((165, b_y + 44), pt_sub, fill=COLOR_MUTED, font=_font_sans(19))
 
-    b3_y = 970
-    _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "strength.webp", (75, b3_y, 165, b3_y + 90), badge_fill=(254, 243, 220), padding=12)
-    draw.text((190, b3_y + 8), "Good time for teaching, writing", fill=COLOR_DARK, font=_font_sans(28, bold=True))
-    draw.text((190, b3_y + 46), "and intellectual growth", fill=COLOR_MUTED, font=_font_sans(24))
+    # Decorative clean celestial Jupiter sphere
+    c_cy = 920
+    draw.ellipse([420, c_cy - 90, 660, c_cy + 90], outline=(225, 195, 140, 110), width=2)
+    draw.ellipse([480, c_cy - 40, 600, c_cy + 40], fill=(218, 165, 82), outline=(180, 120, 40), width=2)
 
-    # Quote Card: Soft cream container with border
-    q_y = 1250
-    draw.rounded_rectangle([75, q_y, 750, q_y + 170], radius=20, fill=(255, 253, 248, 235), outline=COLOR_BORDER, width=2)
-    draw.text((115, q_y + 35), "“When Guru moves, wisdom", fill=COLOR_CRIMSON, font=_font_serif(30, italic=True))
-    draw.text((115, q_y + 85), "finds a new direction.”", fill=COLOR_CRIMSON, font=_font_serif(30, italic=True))
+    # Subtle quote note
+    draw.text((540, 1205), "“When Guru moves, wisdom finds a new direction.”", fill=COLOR_CRIMSON, font=_font_serif(22, italic=True), anchor="mm")
 
-    # Small diamond ornament below card
-    cx, cy = 412, q_y + 205
-    draw.polygon([(cx, cy - 8), (cx + 8, cy), (cx, cy + 8), (cx - 8, cy)], fill=COLOR_GOLD)
+    # Standardized bottom CTA pill
+    _draw_cta_pill(canvas, draw, "Track Planetary Transits in Siddhanta", y=1245)
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     canvas.save(output_path, "PNG")

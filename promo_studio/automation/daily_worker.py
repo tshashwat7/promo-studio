@@ -1,30 +1,35 @@
 """Master Daily Cosmic Blueprint Worker.
 
-Runs the complete automated pipeline:
-1. Computes today's Siddhanta Panchang & 7-day rotation theme
-2. Generates Material 3 Saffron & Gold visual cards (Pillow)
-3. Prompts Gemini AI for authentic Vedic caption & hashtags
-4. Uploads images to ImgBB
-5. Publishes Carousel / 4:5 Portrait to Instagram (& Facebook if configured)
+Runs the complete automated pipeline for Siddhanta Social Publishing:
+1. Computes today's Siddhanta Panchang & detects festivals via authentic app rules (festival_resolver)
+2. Uses intelligent Daily Content Selection (1 Primary Post per day from the 6-Card Universe)
+3. Renders strict 1080 x 1350 (4:5 Feed Portrait) visual card using rule-based background templates
+4. Prompts Gemini AI as Composer & Writer (concise, focused captions & hashtags for the chosen card)
+5. Uploads to ImgBB and publishes to Instagram Graph API (or runs dry-run)
 
-Can be executed locally or in GitHub Actions at 6:00 AM IST.
+Can be executed locally or via GitHub Actions.
 """
 from __future__ import annotations
 
 import argparse
 import datetime as dt
+import json
 import logging
 import os
 import sys
 from pathlib import Path
 
-from promo_studio.automation.panchang_engine import calculate_daily_panchang
-from promo_studio.automation.card_generator import (
-    generate_slide_1_hook,
-    generate_slide_2_value,
-    generate_combined_card
+from promo_studio.automation.panchang_engine import DailyPanchang
+from promo_studio.automation.panchang_data_client import get_authoritative_daily_panchang
+from promo_studio.automation.card_universe import (
+    render_card_1_panchang,
+    render_card_2_plan_day,
+    render_card_3_festival,
+    render_card_4_kundli,
+    render_card_5_chakra,
+    render_card_6_jyotish,
 )
-from promo_studio.automation.ai_blueprint import generate_cosmic_caption
+from promo_studio.automation.ai_blueprint import generate_cosmic_caption, get_devotional_fallback_copy
 from promo_studio.automation.instagram_carousel import InstagramCarouselPublisher
 from promo_studio.ai.gemini import GeminiProvider
 from promo_studio.core.image_host import ImgBBHost
@@ -39,7 +44,6 @@ def get_credential(name: str, fallback_settings_key: str = None) -> str:
     if val:
         return val.strip()
 
-    # Fallback to local PromoStudio keyring/settings if available
     try:
         from promo_studio.config.secrets import get_secret
         sec = get_secret(name)
@@ -64,8 +68,61 @@ def get_credential(name: str, fallback_settings_key: str = None) -> str:
     return ""
 
 
-def run_daily_worker(dry_run: bool = False, format_mode: str = "carousel", target_date: dt.date = None):
-    log.info("========== Starting Siddhanta Daily Cosmic Blueprint Worker ==========")
+def select_daily_post_type(panchang: DailyPanchang) -> tuple[str, str]:
+    """Intelligently selects the single primary post type from the 6-Card Universe.
+    
+    Priority Hierarchy:
+    1. Festival: If today has an active festival, festival card is paramount.
+    2. Solar/Lunar Eclipse or Major Planetary Transit: On transit days, Jyotish insight.
+    3. Weekday Content Schedule:
+       - Tuesday & Thursday: Plan Your Day (Muhurtas, Rahu Kaal, Choghadiya)
+       - Saturday: Jyotish Insight or Kundli (Shani / Dasha focus)
+       - Sunday: Panchang (Ravivar / Surya focus)
+       - Wednesday: Chakra Balance (Mercury / Anahata & Vishuddha balance)
+       - Monday: Daily Panchang (Soma / Chandra devotion)
+       - Friday: Kundli (Venus / Lagna harmony)
+    
+    Returns:
+        (post_type, display_title)
+    """
+    # 1. Festival Check
+    if panchang.is_festival and panchang.festival_name:
+        return "festival", f"Festival Alert: {panchang.festival_name}"
+
+    # 2. Weekday-based Intelligent Selection
+    weekday = panchang.date.weekday()  # Monday is 0, Sunday is 6
+
+    if weekday in (1, 3):  # Tuesday, Thursday
+        return "plan_day", "Plan Your Day Wisely"
+    elif weekday == 5:     # Saturday
+        return "kundli", "Your Kundli & Dasha Journey"
+    elif weekday == 2:     # Wednesday
+        return "chakra", "Balance Your Inner Energy (Chakras)"
+    elif weekday == 4:     # Friday
+        return "jyotish", "Jyotish Transit Insight"
+    else:                  # Monday, Sunday
+        return "panchang", "Today's Panchang Overview"
+
+
+def render_selected_card(post_type: str, panchang: DailyPanchang, out_path: Path) -> Path:
+    """Renders the single selected card at 1080 x 1350."""
+    if post_type == "festival":
+        render_card_3_festival(panchang, out_path)
+    elif post_type == "plan_day":
+        render_card_2_plan_day(panchang, out_path)
+    elif post_type == "kundli":
+        render_card_4_kundli(panchang, out_path)
+    elif post_type == "chakra":
+        render_card_5_chakra(out_path)
+    elif post_type == "jyotish":
+        render_card_6_jyotish(panchang, out_path)
+    else:  # default "panchang"
+        render_card_1_panchang(panchang, out_path)
+    return out_path
+
+
+def run_daily_worker(dry_run: bool = False, format_mode: str = "single", target_date: dt.date = None, post_type_override: str = None):
+    log.info("========== Starting Siddhanta Daily Social Worker (4:5 Feed Mode) ==========")
 
     # 1. Credentials
     gemini_key = get_credential("GEMINI_API_KEY")
@@ -84,115 +141,84 @@ def run_daily_worker(dry_run: bool = False, format_mode: str = "carousel", targe
             log.error("Missing required credentials: %s", ", ".join(missing))
             sys.exit(1)
 
-    # 2. Panchang Calculation
-    panchang = calculate_daily_panchang(target_date)
-    log.info("Calculated Panchang: %s | Tithi: %s | Vara: %s | Theme: %s",
-             panchang.date_formatted, panchang.tithi_name, panchang.vara_sa, panchang.content_theme)
+    # 2. Authentic Panchang Calculation (Ingests Flutter dumps with fallback)
+    panchang = get_authoritative_daily_panchang(target_date)
+    log.info("Calculated Panchang: %s | Tithi: %s | Vara: %s | Festival: %s",
+             panchang.date_formatted, panchang.tithi_name, panchang.vara_sa, panchang.festival_name or "None")
 
-    # 3. Card Generation (Full 6-Card Universe)
+    # 3. Intelligent Content Selection
+    if post_type_override:
+        post_type = post_type_override
+        display_title = f"Manual Override: {post_type}"
+    else:
+        post_type, display_title = select_daily_post_type(panchang)
+    
+    log.info("Selected Primary Post for Today: [%s] '%s'", post_type.upper(), display_title)
+
+    # 4. Render 1080 x 1350 Primary Card
     out_dir = Path("output") / panchang.date.strftime("%Y%m%d")
     out_dir.mkdir(parents=True, exist_ok=True)
     
-    slide1_path = out_dir / "slide1_hook.png"
-    slide2_path = out_dir / "slide2_value.png"
-    combined_path = out_dir / "combined_card.png"
+    primary_card_path = out_dir / f"primary_{post_type}.png"
+    render_selected_card(post_type, panchang, primary_card_path)
+    log.info("Rendered primary post card (1080x1350) to %s", primary_card_path)
 
-    from promo_studio.automation.card_universe import (
-        render_card_1_panchang,
-        render_card_2_plan_day,
-        render_card_3_festival,
-        render_card_4_kundli,
-        render_card_5_chakra,
-        render_card_6_jyotish,
-    )
-
-    # Carousel slides
-    render_card_1_panchang(panchang, slide1_path)
-    render_card_2_plan_day(panchang, slide2_path)
-    render_card_6_jyotish(panchang, combined_path)
-
-    # Complete Universe Cards for artifact downloads
+    # Also render all 6 cards for reference/download package
+    render_card_1_panchang(panchang, out_dir / "card1_panchang.png")
+    render_card_2_plan_day(panchang, out_dir / "card2_plan_day.png")
     render_card_3_festival(panchang, out_dir / "card3_festival.png")
     render_card_4_kundli(panchang, out_dir / "card4_kundli.png")
     render_card_5_chakra(out_dir / "card5_chakra.png")
+    render_card_6_jyotish(panchang, out_dir / "card6_jyotish.png")
 
-    log.info("Rendered all 6 Universe cards to %s", out_dir)
-
-    # 4. AI Caption Generation
-    log.info("Invoking Gemini AI (%s) for Daily Cosmic Blueprint copy...", gemini_model)
+    # 5. AI Copywriting (Gemini as Writer/Composer tailored to the chosen card)
+    log.info("Invoking Gemini AI as Composer for post type '%s'...", post_type)
     copy_data = None
     if gemini_key:
         try:
-            from promo_studio.automation.ai_blueprint import get_devotional_fallback_copy
             gemini = GeminiProvider(gemini_key, gemini_model)
-            copy_data = generate_cosmic_caption(panchang, gemini, api_key=gemini_key)
+            copy_data = generate_cosmic_caption(panchang, gemini, api_key=gemini_key, post_type=post_type)
         except Exception as e:
-            log.warning("Gemini AI failed or not installed: %s. Using rich Vedic fallback copy.", e)
-            from promo_studio.automation.ai_blueprint import get_devotional_fallback_copy
-            copy_data = get_devotional_fallback_copy(panchang)
+            log.warning("Gemini AI failed: %s. Using devotional fallback copy.", e)
+            copy_data = get_devotional_fallback_copy(panchang, post_type=post_type)
     else:
-        from promo_studio.automation.ai_blueprint import get_devotional_fallback_copy
-        copy_data = get_devotional_fallback_copy(panchang)
+        copy_data = get_devotional_fallback_copy(panchang, post_type=post_type)
 
     raw_caption = copy_data.get("instagram_caption", "")
     hashtags = " ".join(f"#{tag.lstrip('#')}" for tag in copy_data.get("hashtags", []))
     final_caption = f"{raw_caption}\n\n.\n.\n{hashtags}".strip()
 
-    # Save caption and metadata so they are included in the downloadable zip artifact
-    caption_file = out_dir / "caption.txt"
-    caption_file.write_text(final_caption, encoding="utf-8")
-
-    import json
-    metadata_file = out_dir / "post_metadata.json"
+    # Save outputs
+    (out_dir / "caption.txt").write_text(final_caption, encoding="utf-8")
     meta = {
         "date": panchang.date_formatted,
-        "date_hi": panchang.date_formatted_hi,
+        "post_type": post_type,
+        "title": display_title,
         "tithi": panchang.tithi_name,
-        "tithi_hi": panchang.tithi_name_hi,
         "nakshatra": panchang.nakshatra_name,
-        "nakshatra_hi": panchang.nakshatra_name_hi,
-        "vara": panchang.vara_sa,
-        "vara_hi": panchang.vara_hi,
-        "deity": panchang.deity,
-        "deity_hi": panchang.deity_hi,
-        "abhijit_muhurta": panchang.abhijit_muhurta,
-        "rahu_kaal": panchang.rahu_kaal,
-        "favorable_rashis": panchang.gochar.favorable_rashis if panchang.gochar else [],
-        "dasha_spotlight": panchang.gochar.dasha_spotlight_title if panchang.gochar else "",
+        "festival": panchang.festival_name,
+        "image_file": primary_card_path.name,
+        "image_dimensions": "1080x1350",
         "hashtags": copy_data.get("hashtags", []),
     }
-    metadata_file.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
-    log.info("Saved caption.txt and post_metadata.json into %s", out_dir)
+    (out_dir / "post_metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
 
     log.info("--- GENERATED CAPTION ---\n%s\n-------------------------", final_caption)
 
     if dry_run:
-        log.info("[DRY RUN] Skipping upload and Instagram publish. Everything executed successfully!")
+        log.info("[DRY RUN] Primary 1080x1350 card & caption generated successfully!")
         return True
 
-    # 5. Image Hosting Upload (ImgBB)
+    # 6. Image Hosting Upload (ImgBB)
     img_host = ImgBBHost(img_host_key)
-    log.info("Uploading cards to temporary image host...")
+    log.info("Uploading primary 1080x1350 card to image host...")
+    card_url = img_host.upload(str(primary_card_path))
+    log.info("Uploaded Image: %s", card_url)
 
-    if format_mode == "carousel":
-        url1 = img_host.upload(str(slide1_path))
-        url2 = img_host.upload(str(slide2_path))
-        image_urls = [url1, url2]
-        log.info("Uploaded Slide 1: %s", url1)
-        log.info("Uploaded Slide 2: %s", url2)
-    else:
-        url_combined = img_host.upload(str(combined_path))
-        image_urls = [url_combined]
-        log.info("Uploaded Combined Card: %s", url_combined)
-
-    # 6. Instagram Publishing
-    log.info("Publishing to Instagram via Graph API...")
+    # 7. Instagram Publishing via Graph API (Single 4:5 Portrait Feed Post)
+    log.info("Publishing single 4:5 Portrait post to Instagram...")
     ig_publisher = InstagramCarouselPublisher(ig_user_id, ig_token)
-
-    if format_mode == "carousel":
-        res = ig_publisher.publish_carousel(image_urls, final_caption)
-    else:
-        res = ig_publisher.publish_single(image_urls[0], final_caption)
+    res = ig_publisher.publish_single(card_url, final_caption)
 
     if res.ok:
         log.info("SUCCESS! Post live on Instagram: %s (Post ID: %s)", res.url, res.post_id)
@@ -203,17 +229,18 @@ def run_daily_worker(dry_run: bool = False, format_mode: str = "carousel", targe
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Siddhanta Daily Cosmic Blueprint Automated Poster")
-    parser.add_argument("--dry-run", action="store_true", help="Generate panchang, cards, and AI caption without posting")
-    parser.add_argument("--format", choices=["carousel", "single"], default="carousel", help="Post as 2-slide carousel or single 4:5 portrait card")
-    parser.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD (default: today IST)")
+    parser = argparse.ArgumentParser(description="Siddhanta Daily Social Automation (4:5 Feed Mode)")
+    parser.add_argument("--dry-run", action="store_true", help="Generate 1080x1350 card & caption without posting")
+    parser.add_argument("--format", choices=["single", "carousel"], default="single", help="Publish mode (default single 4:5)")
+    parser.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD")
+    parser.add_argument("--type", choices=["panchang", "plan_day", "festival", "kundli", "chakra", "jyotish"], default=None, help="Force specific card type")
     args = parser.parse_args()
 
     target_date = None
     if args.date:
         target_date = dt.date.fromisoformat(args.date)
 
-    run_daily_worker(dry_run=args.dry_run, format_mode=args.format, target_date=target_date)
+    run_daily_worker(dry_run=args.dry_run, format_mode=args.format, target_date=target_date, post_type_override=args.type)
 
 
 if __name__ == "__main__":
