@@ -163,8 +163,9 @@ def run_daily_worker(dry_run: bool = False, format_mode: str = "single", target_
     render_selected_card(post_type, panchang, primary_card_path)
     log.info("Rendered primary post card (1080x1350) to %s", primary_card_path)
 
-    # Also render all 6 cards for reference/download package
-    render_card_1_panchang(panchang, out_dir / "card1_panchang.png")
+    # Also render all 6 cards for reference/download package (and Hindi variant)
+    render_card_1_panchang(panchang, out_dir / "card1_panchang.png", lang="en")
+    render_card_1_panchang(panchang, out_dir / "card1_panchang_hindi.png", lang="hi")
     render_card_2_plan_day(panchang, out_dir / "card2_plan_day.png")
     render_card_3_festival(panchang, out_dir / "card3_festival.png")
     render_card_4_kundli(panchang, out_dir / "card4_kundli.png")

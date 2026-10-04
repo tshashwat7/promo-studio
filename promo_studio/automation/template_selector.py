@@ -62,24 +62,35 @@ TEMPLATE_CANDIDATES = {
 }
 
 
+ASSETS_TEMPLATES = Path(__file__).resolve().parent.parent / "assets" / "templates"
+DOWNLOADS_DIR = Path(r"C:\Users\91962\Downloads")
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+
+SEARCH_DIRS = [
+    ASSETS_TEMPLATES,
+    REPO_ROOT / "assets" / "templates",
+    REPO_ROOT / "assets",
+    REPO_ROOT / "promo_studio" / "assets" / "templates",
+    REPO_ROOT / "promo_studio" / "assets",
+    DOWNLOADS_DIR,
+]
+
+
 def find_template_file(theme_key: str) -> Path | None:
-    """Finds existing template file either in project assets or user's Downloads."""
+    """Finds existing template file in project assets, root directory, or Downloads."""
     candidates = TEMPLATE_CANDIDATES.get(theme_key, [])
     for fname in candidates:
-        # Check project assets first
-        p_asset = ASSETS_TEMPLATES / fname
-        if p_asset.exists():
-            return p_asset
-        # Check Downloads folder
-        p_dl = DOWNLOADS_DIR / fname
-        if p_dl.exists():
-            return p_dl
+        for sdir in SEARCH_DIRS:
+            p = sdir / fname
+            if p.exists():
+                return p
 
-    # Fallback to general candidates
-    for search_dir in (ASSETS_TEMPLATES, DOWNLOADS_DIR):
-        for candidate in search_dir.glob("*.png"):
-            if theme_key.lower() in candidate.name.lower():
-                return candidate
+    # Fallback pattern match
+    for sdir in SEARCH_DIRS:
+        if sdir.exists():
+            for candidate in sdir.glob("*.png"):
+                if theme_key.lower() in candidate.name.lower():
+                    return candidate
 
     return None
 

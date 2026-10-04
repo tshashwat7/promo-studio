@@ -247,11 +247,85 @@ def _prepare_card_canvas(theme: str, festival_name: str = "") -> tuple[Image.Ima
 # ═════════════════════════════════════════════════════════════════════════════
 # 1. DAILY PANCHANG (1080 x 1350)
 # ═════════════════════════════════════════════════════════════════════════════
-def render_card_1_panchang(p: DailyPanchang, output_path: str | Path) -> str:
+def render_card_1_panchang(p: DailyPanchang, output_path: str | Path, lang: str = "en") -> str:
     canvas, draw = _prepare_card_canvas("panchang")
     _draw_brand_header(canvas, draw, y=42)
 
-    # Title & Sub-header
+    f_dev = _font_hindi(38)
+    f_dev_sub = _font_hindi(22)
+    f_dev_h1 = _font_hindi(54)
+
+    if lang == "hi":
+        # Pure Devanagari Headline
+        draw.text((60, 160), "आज का पंचांग", fill=COLOR_CRIMSON, font=f_dev_h1)
+        sub_str = f"{p.date_formatted_hi} • {p.paksha_hi}"
+        draw.text((60, 232), sub_str, fill=COLOR_GOLD, font=f_dev_sub)
+
+        # Tithi Card (Row 1)
+        t_y = 285
+        t_h = 110
+        draw.rounded_rectangle([60, t_y, 1020, t_y + t_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+        _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Moon.webp", (80, t_y + 15, 160, t_y + 95), badge_fill=(254, 243, 220), padding=12)
+        draw.text((185, t_y + 14), "तिथि", fill=COLOR_MUTED, font=_font_hindi(20))
+        draw.text((185, t_y + 40), p.tithi_name_hi, fill=COLOR_CRIMSON, font=f_dev)
+        t_end_str = f"समाप्ति: {p.tithi_end}  •  " if p.tithi_end else ""
+        tithi_sub = f"{t_end_str}{p.paksha_hi}"
+        draw.text((185, t_y + 80), tithi_sub, fill=COLOR_MUTED, font=_font_hindi(19))
+
+        # Nakshatra Card (Row 2)
+        n_y = 415
+        draw.rounded_rectangle([60, n_y, 1020, n_y + t_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+        _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "nakshatra.webp", (80, n_y + 15, 160, n_y + 95), badge_fill=(254, 243, 220), padding=10)
+        draw.text((185, n_y + 14), "नक्षत्र", fill=COLOR_MUTED, font=_font_hindi(20))
+        draw.text((185, n_y + 40), p.nakshatra_name_hi, fill=COLOR_CRIMSON, font=f_dev)
+        n_end_str = f"समाप्ति: {p.nakshatra_end}  •  " if p.nakshatra_end else ""
+        nak_sub = f"{n_end_str}चन्द्र राशि: {p.moon_rashi_hi}"
+        draw.text((185, n_y + 80), nak_sub, fill=COLOR_MUTED, font=_font_hindi(19))
+
+        # Auspicious Timings Card (Abhijit & Rahu Kaal)
+        m_y = 545
+        m_h = 120
+        draw.rounded_rectangle([60, m_y, 1020, m_y + m_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+        draw.text((100, m_y + 18), "शुभ मुहूर्त (अभिजित)", fill=COLOR_GREEN, font=_font_hindi(21))
+        draw.text((100, m_y + 54), p.abhijit_muhurta, fill=COLOR_DARK, font=_font_sans(28, bold=True))
+        draw.text((100, m_y + 90), "शुभ कार्यों की शुरुआत हेतु श्रेष्ठ", fill=COLOR_MUTED, font=_font_hindi(18))
+
+        draw.line([540, m_y + 16, 540, m_y + 104], fill=(225, 210, 190), width=2)
+
+        draw.text((580, m_y + 18), "अशुभ काल (राहुकाल)", fill=COLOR_RED, font=_font_hindi(21))
+        draw.text((580, m_y + 54), p.rahu_kaal, fill=COLOR_DARK, font=_font_sans(28, bold=True))
+        draw.text((580, m_y + 90), "नए कार्य व समझौते टालें", fill=COLOR_MUTED, font=_font_hindi(18))
+
+        # Sunrise & Sunset Strip
+        s_y = 685
+        s_h = 100
+        draw.rounded_rectangle([60, s_y, 1020, s_y + s_h], radius=18, fill=COLOR_CARD_BG, outline=COLOR_BORDER, width=2)
+        _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Sunrise.webp", (85, s_y + 16, 155, s_y + 84), badge_fill=(254, 243, 220), padding=8)
+        draw.text((175, s_y + 18), "सूर्योदय", fill=COLOR_MUTED, font=_font_hindi(19))
+        draw.text((175, s_y + 48), p.sunrise_str, fill=COLOR_DARK, font=_font_sans(28, bold=True))
+
+        draw.line([540, s_y + 14, 540, s_y + 86], fill=(225, 210, 190), width=2)
+
+        _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Sunset.webp", (565, s_y + 16, 635, s_y + 84), badge_fill=(254, 243, 220), padding=8)
+        draw.text((655, s_y + 18), "सूर्यास्त", fill=COLOR_MUTED, font=_font_hindi(19))
+        draw.text((655, s_y + 48), p.sunset_str, fill=COLOR_DARK, font=_font_sans(28, bold=True))
+
+        # Daily Spiritual Focus Footer Pill
+        sp_y = 805
+        draw.rounded_rectangle([60, sp_y, 1020, sp_y + 95], radius=18, fill=(255, 250, 238), outline=(225, 195, 140), width=2)
+        _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "diya.webp", (85, sp_y + 16, 150, sp_y + 80), badge_fill=(254, 243, 220), padding=6)
+        draw.text((170, sp_y + 14), "दैनिक आध्यात्मिक संकल्प", fill=COLOR_GOLD, font=_font_hindi(20))
+        focus_text = p.remedy if p.remedy else "प्रातःकाल सूर्य देव को तांबे के लोटे से अर्घ्य दें।"
+        draw.text((170, sp_y + 48), focus_text[:65], fill=COLOR_CRIMSON, font=_font_hindi(20))
+
+        draw.text((540, 1205), "“शुभ समय पर किया गया कर्म कल्याणकारी होता है।”", fill=COLOR_CRIMSON, font=_font_hindi(22), anchor="mm")
+        _draw_cta_pill(canvas, draw, "सिद्धांत पंचांग ऐप में देखें", y=1245)
+
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+        canvas.save(output_path, "PNG")
+        return str(output_path)
+
+    # Title & Sub-header (English default)
     draw.text((60, 160), "Today's Panchang", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
     day_str = p.date.strftime("%d %B %Y").upper()
     vara_label = f"{day_str}  •  {p.vara_en.upper()} ({p.vara_sa.upper()})  •  {p.paksha.upper()} PAKSHA"
@@ -264,7 +338,8 @@ def render_card_1_panchang(p: DailyPanchang, output_path: str | Path) -> str:
     _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "Moon.webp", (80, t_y + 15, 160, t_y + 95), badge_fill=(254, 243, 220), padding=12)
     draw.text((185, t_y + 18), "Tithi", fill=COLOR_MUTED, font=_font_sans(20, bold=False))
     draw.text((185, t_y + 44), p.tithi_name, fill=COLOR_CRIMSON, font=_font_serif(34, bold=True))
-    tithi_sub = f"{p.tithi_name_hi}  •  {p.paksha} Paksha"
+    t_end_str = f"Until {p.tithi_end}  •  " if p.tithi_end else ""
+    tithi_sub = f"{t_end_str}{p.tithi_name_hi} ({p.paksha} Paksha)"
     draw.text((185, t_y + 80), tithi_sub, fill=COLOR_MUTED, font=_font_sans(19))
 
     # Nakshatra Card (Row 2)
@@ -273,7 +348,8 @@ def render_card_1_panchang(p: DailyPanchang, output_path: str | Path) -> str:
     _paste_icon_badge(canvas, ILLUST_DIR / "icons" / "nakshatra.webp", (80, n_y + 15, 160, n_y + 95), badge_fill=(254, 243, 220), padding=10)
     draw.text((185, n_y + 18), "Nakshatra", fill=COLOR_MUTED, font=_font_sans(20, bold=False))
     draw.text((185, n_y + 44), p.nakshatra_name, fill=COLOR_CRIMSON, font=_font_serif(34, bold=True))
-    nak_sub = f"{p.nakshatra_name_hi}  •  Moon in {p.moon_rashi}"
+    n_end_str = f"Until {p.nakshatra_end}  •  " if p.nakshatra_end else ""
+    nak_sub = f"{n_end_str}{p.nakshatra_name_hi} (Moon in {p.moon_rashi})"
     draw.text((185, n_y + 80), nak_sub, fill=COLOR_MUTED, font=_font_sans(19))
 
     # Auspicious Timings Card (Abhijit & Rahu Kaal side-by-side)
@@ -367,16 +443,16 @@ def render_card_2_plan_day(p: DailyPanchang, output_path: str | Path) -> str:
     draw.text((225, c2_y + 58), p.rahu_kaal, fill=COLOR_DARK, font=_font_sans(30, bold=True))
     draw.text((225, c2_y + 104), "Inauspicious period — avoid major commitments or travel start.", fill=COLOR_MUTED, font=_font_sans(19))
 
-    # Card 3: Choghadiya (Labh) - Data-driven Shastric definition
+    # Card 3: Choghadiya - Data-driven from authentic dump
     c3_y = 655
     draw.rounded_rectangle([60, c3_y, 1020, c3_y + c_h], radius=18, fill=COLOR_CARD_BG, outline=(200, 140, 45), width=2)
     draw.ellipse([85, c3_y + 20, 195, c3_y + 130], fill=(180, 115, 30))
     draw.ellipse([108, c3_y + 43, 172, c3_y + 107], outline=WHITE, width=3)
     draw.line([140, c3_y + 75, 140, c3_y + 56], fill=WHITE, width=3)
     draw.line([140, c3_y + 75, 156, c3_y + 75], fill=WHITE, width=3)
-    draw.text((225, c3_y + 22), "Day Choghadiya (Labh)", fill=COLOR_AMBER, font=_font_sans(24, bold=True))
-    draw.text((225, c3_y + 58), "7:12 AM – 8:44 AM", fill=COLOR_DARK, font=_font_sans(30, bold=True))
-    draw.text((225, c3_y + 104), "Mercury-governed interval traditionally favorable for gain.", fill=COLOR_MUTED, font=_font_sans(19))
+    draw.text((225, c3_y + 22), f"Day Choghadiya ({p.choghadiya_name})", fill=COLOR_AMBER, font=_font_sans(24, bold=True))
+    draw.text((225, c3_y + 58), p.choghadiya_time, fill=COLOR_DARK, font=_font_sans(30, bold=True))
+    draw.text((225, c3_y + 104), f"Auspicious {p.choghadiya_name} interval favorable for action & commerce.", fill=COLOR_MUTED, font=_font_sans(19))
 
     # Daily Muhurta Note
     draw.text((540, 1205), "“Right timing brings the right results.”", fill=COLOR_CRIMSON, font=_font_serif(24, italic=True), anchor="mm")
@@ -627,20 +703,65 @@ def render_card_6_jyotish(p: DailyPanchang, output_path: str | Path) -> str:
     draw.rounded_rectangle([60, 155, 280, 198], radius=12, fill=(255, 248, 235), outline=(220, 190, 140), width=2)
     draw.text((170, 176), "JYOTISH INSIGHT", fill=COLOR_GOLD, font=_font_sans(19, bold=True), anchor="mm")
 
-    # Title & Subtitle - Jupiter Transit in Gemini (II) matching date
-    draw.text((60, 215), "Jupiter Transit in Gemini", fill=COLOR_CRIMSON, font=_font_serif(54, bold=True))
-    draw.text((60, 285), "14 MAY 2026 – 1 JUNE 2027", fill=COLOR_DARK, font=_font_sans(24, bold=True))
+    # Determine planet and sign dynamically from Gochar snapshot
+    planet_name = "Jupiter"
+    target_sign = "Cancer"
+    date_range = "CURRENT VEDIC GOCHARA"
+    motion_info = ""
 
-    # Right side: Consistent Zodiac Gemini Symbol in Gold Circle matching "in Gemini"
-    draw.ellipse([880, 185, 990, 295], fill=(254, 243, 220), outline=(210, 175, 120), width=2)
-    draw.text((935, 230), "II", fill=COLOR_CRIMSON, font=_font_serif(44, bold=True), anchor="mm")
-    draw.text((935, 268), "MITHUNA", fill=COLOR_GOLD, font=_font_sans(14, bold=True), anchor="mm")
+    if p.gochar:
+        planet_name = p.gochar.spotlight_planet or "Jupiter"
+        target_sign = p.gochar.spotlight_sign or "Cancer"
+        date_range = p.gochar.spotlight_date_range or "CURRENT VEDIC GOCHARA"
+        if "Retrograde" in p.gochar.spotlight_motion:
+            motion_info = " • RETROGRADE (वक्री)"
 
-    # Left Column: 3 concise Shastric transit insights
+    # Map sign to Roman numeral, Hindi name, and classical Shastric qualities
+    ZODIAC_DATA = {
+        "Aries": ("I", "MESHA", "Courage & Leadership", "Initiative & fresh beginnings"),
+        "Taurus": ("II", "VRISHABHA", "Material Stability", "Grounded growth & perseverance"),
+        "Gemini": ("III", "MITHUNA", "Intellect & Expression", "Communication & philosophical study"),
+        "Cancer": ("IV", "KARKA", "Emotional Depth & Intuition", "Inner wisdom & nurturing strength"),
+        "Leo": ("V", "SIMHA", "Authority & Vitality", "Confidence & noble pursuits"),
+        "Virgo": ("VI", "KANYA", "Analytical Discernment", "Detail-oriented mastery & service"),
+        "Libra": ("VII", "TULA", "Harmony & Balance", "Diplomacy & refined creativity"),
+        "Scorpio": ("VIII", "VRISHCHIKA", "Deep Intuition & Transformation", "Occult wisdom & emotional resilience"),
+        "Sagittarius": ("IX", "DHANU", "Dharma & Higher Guidance", "Spiritual expansion & ethical triumph"),
+        "Capricorn": ("X", "MAKARA", "Karmic Endurance", "Professional duty & long-term foundation"),
+        "Aquarius": ("XI", "KUMBHA", "Universal Insight & Gains", "Community collaboration & vision"),
+        "Pisces": ("XII", "MEENA", "Transcendence & Peace", "Moksha orientation & meditative clarity"),
+    }
+
+    clean_sign = target_sign.split()[0]
+    roman, sign_hi, trait_head, trait_sub = ZODIAC_DATA.get(clean_sign, ("VII", "TULA", "Refined Harmony", "Auspicious planetary alignment"))
+
+    # Planet-specific wisdom traits
+    PLANET_TRAITS = {
+        "Venus": ("Creative Harmony & Aesthetic Balance", "Deepens relationship understanding, artistic pursuits & grace"),
+        "Mercury": ("Analytical Intellect & Commerce", "Sharpening business communication, logic & negotiations"),
+        "Mars": ("Courage & Decisive Energy", "Action-oriented clarity, vitality & protection"),
+        "Jupiter": ("Wisdom, Ethics & Expansion", "Higher learning, mentor blessings & spiritual clarity"),
+        "Saturn": ("Patience, Duty & Karmic Restructuring", "Endurance, long-term discipline & grounded humility"),
+    }
+
+    if planet_name in PLANET_TRAITS:
+        trait_head, trait_sub = PLANET_TRAITS[planet_name]
+
+    # Title & Subtitle - dynamic from active transit
+    draw.text((60, 215), f"{planet_name} Transit in {clean_sign}", fill=COLOR_CRIMSON, font=_font_serif(50, bold=True))
+    draw.text((60, 285), f"{date_range}{motion_info}", fill=COLOR_DARK, font=_font_sans(22, bold=True))
+
+    # Right side: Dynamic Zodiac Symbol in Gold Circle matching the transit sign
+    draw.ellipse([870, 185, 995, 305], fill=(254, 243, 220), outline=(210, 175, 120), width=2)
+    draw.text((932, 232), roman, fill=COLOR_CRIMSON, font=_font_serif(40, bold=True), anchor="mm")
+    draw.text((932, 272), sign_hi, fill=COLOR_GOLD, font=_font_sans(13, bold=True), anchor="mm")
+
+    # Left Column: 3 concise Shastric transit insights from Gochar snapshot
+    fav_str = ", ".join(p.gochar.favorable_rashis[:2]) if (p.gochar and p.gochar.favorable_rashis) else "Cancer & Scorpio"
     pts = [
-        ("icons/Overview.webp", "Expansion in Wisdom & Intellect", "Deepens communication, curiosity & higher study"),
-        ("icons/family.webp", "Favorable for Gemini & Libra", "Brings supportive opportunities and intellectual growth"),
-        ("icons/strength.webp", "Auspicious for Teaching & Research", "Ideal planetary alignment for writing and philosophy"),
+        ("icons/Overview.webp", trait_head, trait_sub),
+        ("icons/family.webp", f"Favorable Alignment: {fav_str}", "Supportive planetary momentum & positive opportunities"),
+        ("icons/strength.webp", f"Vedic Transit Guidance", f"Mindful alignment with {planet_name}'s cosmic energy"),
     ]
 
     for idx, (icon_rel, pt_head, pt_sub) in enumerate(pts):

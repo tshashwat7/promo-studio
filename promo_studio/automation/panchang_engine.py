@@ -157,6 +157,13 @@ class GocharSnapshot:
     caution_rashis: list[str]
     dasha_spotlight_title: str
     dasha_spotlight_desc: str
+    # Dynamic spotlight transit (can be Mercury, Venus, Mars, Jupiter, Saturn, etc.)
+    spotlight_planet: str = "Jupiter"
+    spotlight_planet_hi: str = "गुरु (बृहस्पति)"
+    spotlight_sign: str = "Cancer"
+    spotlight_sign_hi: str = "कर्क"
+    spotlight_date_range: str = "14 MAY 2026 – 1 JUNE 2027"
+    spotlight_motion: str = "Direct"
 
 
 @dataclass
@@ -195,6 +202,10 @@ class DailyPanchang:
     sunset_str: str           # e.g. "06:04 PM"
     abhijit_muhurta: str      # e.g. "11:45 AM - 12:33 PM"
     rahu_kaal: str            # e.g. "04:30 PM - 06:00 PM"
+    choghadiya_name: str = "Labh"
+    choghadiya_time: str = "9:17 AM – 10:46 AM"
+    tithi_end: str = ""
+    nakshatra_end: str = ""
     
     # Universal Planetary Transits & Dasha Spotlight
     gochar: GocharSnapshot | None = None
@@ -314,7 +325,8 @@ SPECIAL_FESTIVALS = {
     (0, "Shukla", 9): ("Ram Navami", "Appearance day of Bhagwan Sri Ram."),
     (4, "Shukla", 5): ("Nag Panchami", "Dedicated to Serpent deities and spiritual protection."),
     (4, "Shukla", 15): ("Raksha Bandhan", "Celebration of sibling bonds and protection."),
-    (5, "Krishna", 8): ("Krishna Janmashtami", "Midnight appearance of Bhagwan Sri Krishna."),
+    (5, "Krishna", 8): ("Jivitputrika Vrat (Jitiya)", "Sacred 24-hour nirjala fast by mothers for children's longevity and protection."),
+    (5, "Krishna", 9): ("Jivitputrika Vrat (Jitiya Parana)", "Mothers break the sacred Jitiya fast with divine blessings of Lord Jimutavahana."),
     (5, "Shukla", 4): ("Ganesh Chaturthi", "Welcoming Lord Ganesha, remover of all obstacles."),
     (6, "Shukla", 1): ("Sharad Navratri Day 1", "Worship of Maa Durga begins."),
     (6, "Shukla", 10): ("Vijayadashami / Dussehra", "Triumph of dharma over adharma."),
