@@ -1,7 +1,12 @@
 .env
 .venv/
+venv/
 __pycache__/
+*.pyc
 *.db
 *.log
 .pytest_cache/
 output/
+data/panchang-data/
+*.zip
+.DS_Store
