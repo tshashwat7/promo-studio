@@ -159,9 +159,9 @@ def run_daily_worker(dry_run: bool = False, format_mode: str = "single", target_
     out_dir = Path("output") / panchang.date.strftime("%Y%m%d")
     out_dir.mkdir(parents=True, exist_ok=True)
     
-    primary_card_path = out_dir / f"primary_{post_type}.png"
+    primary_card_path = out_dir / f"primary_{post_type}.jpg"
     render_selected_card(post_type, panchang, primary_card_path)
-    log.info("Rendered primary post card (1080x1350) to %s", primary_card_path)
+    log.info("Rendered primary post card (1080x1350 JPEG) to %s", primary_card_path)
 
     # Also render all 6 cards for reference/download package (and Hindi variant)
     render_card_1_panchang(panchang, out_dir / "card1_panchang.png", lang="en")

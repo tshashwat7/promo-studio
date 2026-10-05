@@ -81,6 +81,30 @@ def _font_hindi(size: int) -> ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
+def _save_card_image(canvas: Image.Image, output_path: str | Path) -> str:
+    """Saves canvas to disk with guaranteed format compatibility.
+    
+    If saving as .jpg / .jpeg, converts RGBA to RGB with clean cream background
+    and quality=95, fulfilling Meta's strict Instagram Graph API image format policy.
+    """
+    out_p = Path(output_path)
+    out_p.parent.mkdir(parents=True, exist_ok=True)
+
+    ext = out_p.suffix.lower()
+    if ext in (".jpg", ".jpeg"):
+        # Convert RGBA to RGB over solid cream background
+        rgb_canvas = Image.new("RGB", canvas.size, (255, 252, 246))
+        if canvas.mode == "RGBA":
+            rgb_canvas.paste(canvas, mask=canvas.split()[3])
+        else:
+            rgb_canvas.paste(canvas)
+        rgb_canvas.save(out_p, "JPEG", quality=95, optimize=True)
+    else:
+        canvas.save(out_p, "PNG")
+
+    return str(out_p)
+
+
 def _clean_transparency(img: Image.Image) -> Image.Image:
     """Removes near-white/cream corner background for crisp overlay."""
     img = img.convert("RGBA")
@@ -321,9 +345,7 @@ def render_card_1_panchang(p: DailyPanchang, output_path: str | Path, lang: str 
         draw.text((540, 1205), "“शुभ समय पर किया गया कर्म कल्याणकारी होता है।”", fill=COLOR_CRIMSON, font=_font_hindi(22), anchor="mm")
         _draw_cta_pill(canvas, draw, "सिद्धांत पंचांग ऐप में देखें", y=1245)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
-        canvas.save(output_path, "PNG")
-        return str(output_path)
+        return _save_card_image(canvas, output_path)
 
     # Title & Sub-header (English default)
     draw.text((60, 160), "Today's Panchang", fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
@@ -404,9 +426,7 @@ def render_card_1_panchang(p: DailyPanchang, output_path: str | Path, lang: str 
     # Standardized bottom CTA pill
     _draw_cta_pill(canvas, draw, "Explore Today's Panchang in Siddhanta", y=1245)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    canvas.save(output_path, "PNG")
-    return str(output_path)
+    return _save_card_image(canvas, output_path)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -460,9 +480,7 @@ def render_card_2_plan_day(p: DailyPanchang, output_path: str | Path) -> str:
     # Standardized bottom CTA pill
     _draw_cta_pill(canvas, draw, "View All Daily Muhurtas in Siddhanta", y=1245)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    canvas.save(output_path, "PNG")
-    return str(output_path)
+    return _save_card_image(canvas, output_path)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -527,9 +545,7 @@ def render_card_3_festival(p: DailyPanchang, output_path: str | Path) -> str:
     # Standardized bottom CTA pill
     _draw_cta_pill(canvas, draw, "Explore Festival Details in Siddhanta", y=1245)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    canvas.save(output_path, "PNG")
-    return str(output_path)
+    return _save_card_image(canvas, output_path)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -619,9 +635,7 @@ def render_card_4_kundli(p: DailyPanchang, output_path: str | Path) -> str:
     # Standardized bottom CTA pill
     _draw_cta_pill(canvas, draw, "Generate Your Free Kundli in Siddhanta", y=1245)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    canvas.save(output_path, "PNG")
-    return str(output_path)
+    return _save_card_image(canvas, output_path)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -687,9 +701,7 @@ def render_card_5_chakra(p_or_path: any, maybe_path: str | Path | None = None) -
     # Standardized bottom CTA pill
     _draw_cta_pill(canvas, draw, "Explore Your Chakras in Siddhanta", y=1245)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    canvas.save(output_path, "PNG")
-    return str(output_path)
+    return _save_card_image(canvas, output_path)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -781,6 +793,4 @@ def render_card_6_jyotish(p: DailyPanchang, output_path: str | Path) -> str:
     # Standardized bottom CTA pill
     _draw_cta_pill(canvas, draw, "Track Planetary Transits in Siddhanta", y=1245)
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    canvas.save(output_path, "PNG")
-    return str(output_path)
+    return _save_card_image(canvas, output_path)

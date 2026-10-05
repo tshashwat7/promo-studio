@@ -40,6 +40,7 @@ def test_card_universe_4_5_dimensions(tmp_path):
     p = calculate_daily_panchang(dt.date(2026, 10, 4))
 
     cards = {
+        "primary_panchang.jpg": lambda path: render_card_1_panchang(p, path, lang="en"),
         "1_panchang.png": lambda path: render_card_1_panchang(p, path, lang="en"),
         "1_panchang_hindi.png": lambda path: render_card_1_panchang(p, path, lang="hi"),
         "2_plan_day.png": lambda path: render_card_2_plan_day(p, path),
@@ -59,6 +60,9 @@ def test_card_universe_4_5_dimensions(tmp_path):
         
         with Image.open(out_file) as img:
             assert img.size == (1080, 1350), f"{fname} has invalid dimensions {img.size}"
+            if fname.endswith(".jpg"):
+                assert img.format == "JPEG", f"{fname} should be JPEG"
+                assert img.mode == "RGB", f"{fname} should be RGB"
 
 
 def test_authoritative_cross_repo_ingestion():
