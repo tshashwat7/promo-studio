@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1920" viewBox="0 0 1080 1920" role="img" aria-label="Decorative indigo universe with distant stars, violet nebulae, a ringed celestial orb and a dark panel reserved for Reel text">
+  <!-- Original, editable 9:16 Siddhanta Reel background. No embedded text or external resources. -->
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="0.38" y2="1">
+      <stop offset="0" stop-color="#0b1029"/>
+      <stop offset="0.43" stop-color="#131d3d"/>
+      <stop offset="0.78" stop-color="#242443"/>
+      <stop offset="1" stop-color="#392744"/>
+    </linearGradient>
+    <radialGradient id="violet">
+      <stop offset="0" stop-color="#9a66ad" stop-opacity=".50"/>
+      <stop offset=".46" stop-color="#624d94" stop-opacity=".25"/>
+      <stop offset="1" stop-color="#343d76" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="teal">
+      <stop offset="0" stop-color="#598caa" stop-opacity=".45"/>
+      <stop offset=".5" stop-color="#5766a0" stop-opacity=".19"/>
+      <stop offset="1" stop-color="#405587" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="planet" cx=".32" cy=".3" r=".8">
+      <stop offset="0" stop-color="#f4daa4"/>
+      <stop offset=".42" stop-color="#d2a36e"/>
+      <stop offset="1" stop-color="#644960"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1b2540"/>
+      <stop offset="1" stop-color="#121b31"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1080" height="1920" fill="url(#night)"/>
+  <!-- Nebulae stay in the outer margins; central facts remain on an opaque panel. -->
+  <ellipse cx="106" cy="190" rx="460" ry="390" fill="url(#violet)"/>
+  <ellipse cx="999" cy="602" rx="405" ry="630" fill="url(#teal)"/>
+  <ellipse cx="-60" cy="1310" rx="390" ry="650" fill="url(#teal)"/>
+  <ellipse cx="860" cy="1790" rx="650" ry="500" fill="url(#violet)"/>
+  <path d="M-40 125 C236 -10 407 64 656 180 S1073 333 1160 151" fill="none" stroke="#aea0bd" stroke-opacity=".12" stroke-width="60"/>
+  <path d="M-50 1720 C270 1580 484 1710 690 1558 S990 1590 1170 1670" fill="none" stroke="#7399b4" stroke-opacity=".12" stroke-width="96"/>
+
+  <!-- Independent star points; no seeded randomness, remote imagery, or astronomical claims. -->
+  <g fill="#f7e4bc">
+    <circle cx="33" cy="85" r="1.5" opacity=".8"/><circle cx="129" cy="36" r="2" opacity=".6"/>
+    <circle cx="231" cy="108" r="1.5" opacity=".8"/><circle cx="311" cy="35" r="1" opacity=".7"/>
+    <circle cx="421" cy="137" r="2" opacity=".6"/><circle cx="530" cy="77" r="1.5" opacity=".9"/>
+    <circle cx="631" cy="195" r="2" opacity=".5"/><circle cx="724" cy="63" r="1.5" opacity=".8"/>
+    <circle cx="890" cy="66" r="2" opacity=".7"/><circle cx="1027" cy="359" r="1.5" opacity=".9"/>
+    <circle cx="65" cy="365" r="2" opacity=".7"/><circle cx="279" cy="294" r="1.5" opacity=".6"/>
+    <circle cx="454" cy="351" r="1.5" opacity=".8"/><circle cx="570" cy="306" r="2" opacity=".6"/>
+    <circle cx="29" cy="509" r="2" opacity=".8"/><circle cx="1047" cy="538" r="1.5" opacity=".6"/>
+    <circle cx="46" cy="708" r="1.5" opacity=".7"/><circle cx="1015" cy="786" r="2" opacity=".8"/>
+    <circle cx="72" cy="956" r="2" opacity=".6"/><circle cx="1051" cy="936" r="2" opacity=".8"/>
+    <circle cx="33" cy="1125" r="1.5" opacity=".8"/><circle cx="1037" cy="1181" r="2" opacity=".6"/>
+    <circle cx="78" cy="1378" r="2" opacity=".7"/><circle cx="1006" cy="1430" r="2" opacity=".8"/>
+    <circle cx="90" cy="1547" r="2" opacity=".9"/><circle cx="243" cy="1605" r="2" opacity=".6"/>
+    <circle cx="395" cy="1500" r="1.5" opacity=".8"/><circle cx="786" cy="1527" r="2" opacity=".9"/>
+    <circle cx="965" cy="1650" r="1.5" opacity=".7"/><circle cx="36" cy="1755" r="2" opacity=".8"/>
+    <circle cx="182" cy="1820" r="1.5" opacity=".7"/><circle cx="437" cy="1702" r="2" opacity=".8"/>
+    <circle cx="612" cy="1877" r="1.5" opacity=".9"/><circle cx="829" cy="1806" r="2" opacity=".6"/>
+    <circle cx="1007" cy="1851" r="2" opacity=".8"/><circle cx="551" cy="1583" r="1.5" opacity=".8"/>
+  </g>
+  <g stroke="#e8c58f" fill="none" stroke-linecap="round">
+    <path d="M179 160 v22 M168 171 h22" opacity=".66" stroke-width="2"/>
+    <path d="M574 246 v19 M565 256 h19" opacity=".55" stroke-width="2"/>
+    <path d="M53 862 v24 M41 874 h24" opacity=".5" stroke-width="2"/>
+    <path d="M1027 1063 v19 M1018 1072 h19" opacity=".6" stroke-width="2"/>
+    <path d="M846 1762 v27 M833 1775 h27" opacity=".55" stroke-width="2"/>
+  </g>
+  <g fill="none" stroke="#c3a37b" stroke-width="1.7" stroke-opacity=".30">
+    <path d="M29 509 46 708 72 956"/><path d="M1015 786 1051 936 1037 1181"/>
+    <path d="M90 1547 243 1605 437 1702"/>
+  </g>
+
+  <!-- Celestial ornaments are decorative, not depictions of computed positions. -->
+  <circle cx="995" cy="237" r="194" fill="none" stroke="#d0a768" stroke-opacity=".55" stroke-width="2"/>
+  <circle cx="995" cy="237" r="160" fill="none" stroke="#d0a768" stroke-opacity=".25" stroke-width="1.5"/>
+  <circle cx="995" cy="237" r="105" fill="url(#planet)" opacity=".8"/>
+  <path d="M854 253 C920 202 1046 186 1142 211" fill="none" stroke="#efcb8c" stroke-opacity=".56" stroke-width="4"/>
+  <circle cx="555" cy="2000" r="377" fill="#15172e" stroke="#c79c64" stroke-opacity=".8" stroke-width="3"/>
+  <circle cx="555" cy="2000" r="418" fill="none" stroke="#e0b77b" stroke-opacity=".5" stroke-width="2"/>
+  <circle cx="555" cy="2000" r="466" fill="none" stroke="#a38887" stroke-opacity=".26" stroke-width="2"/>
+  <path d="M120 1642 C314 1573 757 1582 979 1649" fill="none" stroke="#cbb18e" stroke-opacity=".27" stroke-width="2"/>
+
+  <!-- Uniform, opaque, high-contrast inset: all facts and captions live here. -->
+  <path d="M160 405 H920 M160 1460 H920" fill="none" stroke="#caa36d" stroke-opacity=".70" stroke-width="2"/>
+  <rect x="116" y="432" width="848" height="986" rx="36" fill="url(#panel)" stroke="#c49c67" stroke-width="3"/>
+  <path d="M142 468 v-14 q0-11 11-11 h20 M938 1380 v13 q0 12-12 12 h-19" fill="none" stroke="#e7ba75" stroke-opacity=".48" stroke-width="2"/>
+</svg>

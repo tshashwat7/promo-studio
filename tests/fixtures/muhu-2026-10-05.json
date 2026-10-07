@@ -1,0 +1,224 @@
+{
+  "metadata": {
+    "source": "Siddhanta Vedic Panchang Engine",
+    "generated_at": "2026-10-05T02:14:22.691786",
+    "date": "2026-10-05",
+    "location": {
+      "name": "Ujjain, India",
+      "latitude": 23.1765,
+      "longitude": 75.7885,
+      "timezone": "Asia/Kolkata"
+    }
+  },
+  "date": "2026-10-05",
+  "choghadiya": {
+    "day": [
+      {
+        "slot_number": 1,
+        "name_en": "Amrit",
+        "name_hi": "अमृत",
+        "quality_en": "Best",
+        "quality_hi": "सर्वोत्तम",
+        "is_auspicious": true,
+        "start": "6:20 AM",
+        "end": "7:48 AM"
+      },
+      {
+        "slot_number": 2,
+        "name_en": "Kaal",
+        "name_hi": "काल",
+        "quality_en": "Inauspicious",
+        "quality_hi": "अशुभ",
+        "is_auspicious": false,
+        "start": "7:48 AM",
+        "end": "9:17 AM"
+      },
+      {
+        "slot_number": 3,
+        "name_en": "Shubh",
+        "name_hi": "शुभ",
+        "quality_en": "Auspicious",
+        "quality_hi": "शुभ",
+        "is_auspicious": true,
+        "start": "9:17 AM",
+        "end": "10:46 AM"
+      },
+      {
+        "slot_number": 4,
+        "name_en": "Rog",
+        "name_hi": "रोग",
+        "quality_en": "Inauspicious",
+        "quality_hi": "अशुभ",
+        "is_auspicious": false,
+        "start": "10:46 AM",
+        "end": "12:15 PM"
+      },
+      {
+        "slot_number": 5,
+        "name_en": "Udveg",
+        "name_hi": "उद्वेग",
+        "quality_en": "Inauspicious",
+        "quality_hi": "अशुभ",
+        "is_auspicious": false,
+        "start": "12:15 PM",
+        "end": "1:44 PM"
+      },
+      {
+        "slot_number": 6,
+        "name_en": "Chal",
+        "name_hi": "चल",
+        "quality_en": "Neutral",
+        "quality_hi": "सामान्य",
+        "is_auspicious": false,
+        "start": "1:44 PM",
+        "end": "3:13 PM"
+      },
+      {
+        "slot_number": 7,
+        "name_en": "Labh",
+        "name_hi": "लाभ",
+        "quality_en": "Auspicious",
+        "quality_hi": "शुभ",
+        "is_auspicious": true,
+        "start": "3:13 PM",
+        "end": "4:42 PM"
+      },
+      {
+        "slot_number": 8,
+        "name_en": "Amrit",
+        "name_hi": "अमृत",
+        "quality_en": "Best",
+        "quality_hi": "सर्वोत्तम",
+        "is_auspicious": true,
+        "start": "4:42 PM",
+        "end": "6:11 PM"
+      }
+    ],
+    "night": [
+      {
+        "slot_number": 1,
+        "name_en": "Chal",
+        "name_hi": "चल",
+        "quality_en": "Neutral",
+        "quality_hi": "सामान्य",
+        "is_auspicious": false,
+        "start": "6:11 PM",
+        "end": "7:42 PM"
+      },
+      {
+        "slot_number": 2,
+        "name_en": "Labh",
+        "name_hi": "लाभ",
+        "quality_en": "Auspicious",
+        "quality_hi": "शुभ",
+        "is_auspicious": true,
+        "start": "7:42 PM",
+        "end": "9:13 PM"
+      },
+      {
+        "slot_number": 3,
+        "name_en": "Amrit",
+        "name_hi": "अमृत",
+        "quality_en": "Best",
+        "quality_hi": "सर्वोत्तम",
+        "is_auspicious": true,
+        "start": "9:13 PM",
+        "end": "10:44 PM"
+      },
+      {
+        "slot_number": 4,
+        "name_en": "Kaal",
+        "name_hi": "काल",
+        "quality_en": "Inauspicious",
+        "quality_hi": "अशुभ",
+        "is_auspicious": false,
+        "start": "10:44 PM",
+        "end": "12:15 AM"
+      },
+      {
+        "slot_number": 5,
+        "name_en": "Shubh",
+        "name_hi": "शुभ",
+        "quality_en": "Auspicious",
+        "quality_hi": "शुभ",
+        "is_auspicious": true,
+        "start": "12:15 AM",
+        "end": "1:46 AM"
+      },
+      {
+        "slot_number": 6,
+        "name_en": "Rog",
+        "name_hi": "रोग",
+        "quality_en": "Inauspicious",
+        "quality_hi": "अशुभ",
+        "is_auspicious": false,
+        "start": "1:46 AM",
+        "end": "3:17 AM"
+      },
+      {
+        "slot_number": 7,
+        "name_en": "Udveg",
+        "name_hi": "उद्वेग",
+        "quality_en": "Inauspicious",
+        "quality_hi": "अशुभ",
+        "is_auspicious": false,
+        "start": "3:17 AM",
+        "end": "4:48 AM"
+      },
+      {
+        "slot_number": 8,
+        "name_en": "Chal",
+        "name_hi": "चल",
+        "quality_en": "Neutral",
+        "quality_hi": "सामान्य",
+        "is_auspicious": false,
+        "start": "4:48 AM",
+        "end": "6:20 AM"
+      }
+    ]
+  },
+  "muhurtas": {
+    "abhijit_muhurta": {
+      "name_en": "Abhijit Muhurta",
+      "name_hi": "अभिजित मुहूर्त",
+      "start": "12:03 PM",
+      "end": "12:51 PM",
+      "is_auspicious": true
+    },
+    "brahma_muhurta": {
+      "name_en": "Brahma Muhurta",
+      "name_hi": "ब्रह्म मुहूर्त",
+      "start": "4:44 AM",
+      "end": "5:32 AM",
+      "is_auspicious": true
+    },
+    "godhuli_muhurta": {
+      "name_en": "Godhuli Muhurta",
+      "name_hi": "गोधूलि मुहूर्त",
+      "start": "5:47 PM",
+      "end": "6:35 PM",
+      "is_auspicious": true
+    },
+    "rahu_kaal": {
+      "name_en": "Rahu Kaal",
+      "name_hi": "राहुकाल",
+      "start": "7:48 AM",
+      "end": "9:17 AM",
+      "is_auspicious": false
+    },
+    "gulika_kaal": {
+      "name_en": "Gulika Kaal",
+      "name_hi": "गुलिक काल",
+      "start": "1:44 PM",
+      "end": "3:13 PM",
+      "is_auspicious": false
+    },
+    "yamaghanta": {
+      "name_en": "Yamaghanta",
+      "name_hi": "यमघण्ट",
+      "start": "10:46 AM",
+      "end": "12:15 PM",
+      "is_auspicious": false
+    }
+  }
+}

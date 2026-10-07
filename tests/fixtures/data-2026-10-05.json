@@ -1,0 +1,907 @@
+{
+  "metadata": {
+    "source": "Siddhanta Vedic Panchang Engine",
+    "generated_at": "2026-10-05T02:14:22.691",
+    "schema_version": "3.5",
+    "location": {
+      "name": "Ujjain, India (Standard Astronomical Baseline)",
+      "latitude": 23.1765,
+      "longitude": 75.7885,
+      "timezone": "Asia/Kolkata"
+    }
+  },
+  "today": {
+    "date": "2026-10-05",
+    "day_of_week_en": "Monday",
+    "day_of_week_hi": "सोमवार",
+    "is_festival_today": false,
+    "festival_count_today": 0,
+    "primary_festival_en": null,
+    "primary_festival_hi": null,
+    "festivals_today": [],
+    "hindi": {
+      "date_formatted": "5 अक्टूबर 2026, सोमवार",
+      "tithi": "आश्विन कृष्ण पक्ष दशमी",
+      "tithi_name": "दशमी",
+      "paksha": "कृष्ण पक्ष",
+      "tithi_end": "2:08 AM",
+      "nakshatra": "पुष्य",
+      "nakshatra_end": "11:09 PM",
+      "yoga": "शिव",
+      "karana": "वणिज",
+      "vara": "सोमवार",
+      "masa": "आश्विन",
+      "samvatsara": "Parikhi",
+      "vikram_samvat": 2083,
+      "shaka_samvat": 1948,
+      "chandra_rashi": "कर्क",
+      "surya_rashi": "कन्या",
+      "sunrise": "6:20 AM",
+      "sunset": "6:11 PM",
+      "moonrise": "12:53 AM",
+      "moonset": "2:42 PM",
+      "shubh_muhurta": {
+        "abhijit": "12:03 PM – 12:51 PM",
+        "brahma_muhurta": "4:44 AM – 5:32 AM",
+        "godhuli_muhurta": "5:47 PM – 6:35 PM",
+        "auspicious_choghadiya_summary": "अमृत (6:20 AM - 7:48 AM), शुभ (9:17 AM - 10:46 AM), लाभ (3:13 PM - 4:42 PM), अमृत (4:42 PM - 6:11 PM)"
+      },
+      "ashubh_muhurta": {
+        "rahu_kaal": "7:48 AM – 9:17 AM",
+        "gulika_kaal": "1:44 PM – 3:13 PM",
+        "yamaghanta": "10:46 AM – 12:15 PM"
+      },
+      "ready_caption": "✨ दैनिक पंचांग — 5 अक्टूबर 2026, सोमवार ✨\n\n\n📅 तिथि: आश्विन कृष्ण पक्ष दशमी (समाप्ति: 2:08 AM)\n🌟 नक्षत्र: पुष्य (समाप्ति: 11:09 PM)\n🧘 योग: शिव\n⚡ करण: वणिज\n☀️ सूर्योदय: 6:20 AM | सूर्यास्त: 6:11 PM\n🌙 चंद्र राशि: कर्क | सूर्य राशि: कन्या\n\n🪐 आज का ग्रह गोचर:\n• गुरु: कर्क (कर्क - उच्च)\n• शनि: मीन (मीन - वक्री)\n• राहु: कुंभ | केतु: सिंह\n\n🕉️ शुभ मुहूर्त:\n• अभिजित मुहूर्त: 12:03 PM – 12:51 PM\n• ब्रह्म मुहूर्त: 4:44 AM – 5:32 AM\n• गोधूलि मुहूर्त: 5:47 PM – 6:35 PM\n\n⚠️ अशुभ काल:\n• राहुकाल: 7:48 AM – 9:17 AM\n• यमगण्ड: 10:46 AM – 12:15 PM\n\nहर दिन की सटीक वैदिक गणना के लिए सिद्धान्त पंचांग फॉलो करें। 🪔\n#पंचांग #दैनिकपंचांग #ग्रहगोचर #शुभमुहूर्त #राहुकाल #ज्योतिष #सिद्धान्तपंचांग"
+    },
+    "english": {
+      "date_formatted": "Monday, 5 Monday 2026",
+      "tithi": "Ashwin krishna Dashami",
+      "tithi_name": "Dashami",
+      "paksha": "krishna",
+      "tithi_end": "2:08 AM",
+      "nakshatra": "Pushya",
+      "nakshatra_end": "11:09 PM",
+      "yoga": "Shiva",
+      "karana": "Vanija",
+      "vara": "Monday",
+      "masa": "Ashwin",
+      "samvatsara": "Parikhi",
+      "vikram_samvat": 2083,
+      "shaka_samvat": 1948,
+      "moon_rashi": "Cancer",
+      "sun_rashi": "Virgo",
+      "sunrise": "6:20 AM",
+      "sunset": "6:11 PM",
+      "moonrise": "12:53 AM",
+      "moonset": "2:42 PM",
+      "auspicious_muhurta": {
+        "abhijit": "12:03 PM – 12:51 PM",
+        "brahma_muhurta": "4:44 AM – 5:32 AM",
+        "godhuli_muhurta": "5:47 PM – 6:35 PM"
+      },
+      "inauspicious_muhurta": {
+        "rahu_kaal": "7:48 AM – 9:17 AM",
+        "gulika_kaal": "1:44 PM – 3:13 PM",
+        "yamaghanta": "10:46 AM – 12:15 PM"
+      },
+      "ready_caption": "✨ Daily Vedic Panchang — 5 Monday, 2026 ✨\n\n\n📅 Tithi: Ashwin krishna Dashami (ends 2:08 AM)\n🌟 Nakshatra: Pushya (ends 11:09 PM)\n🧘 Yoga: Shiva\n⚡ Karana: Vanija\n☀️ Sunrise: 6:20 AM | Sunset: 6:11 PM\n🌙 Moon Sign: Cancer | Sun Sign: Virgo\n\n🪐 Planetary Transits (Gochara):\n• Jupiter in Cancer (Exalted)\n• Saturn in Pisces (Retrograde)\n• Rahu in Aquarius | Ketu in Leo\n\n🕉️ Auspicious Timings:\n• Abhijit Muhurta: 12:03 PM – 12:51 PM\n• Brahma Muhurta: 4:44 AM – 5:32 AM\n• Godhuli Muhurta: 5:47 PM – 6:35 PM\n\n⚠️ Inauspicious Timings:\n• Rahu Kaal: 7:48 AM – 9:17 AM\n• Yamaghanta: 10:46 AM – 12:15 PM\n\nFollow Siddhanta for precision offline Vedic calculations. 🪔\n#panchang #vedicastrology #transits #gochara #muhurta #rahukaal #siddhanta"
+    },
+    "choghadiya": {
+      "day": [
+        {
+          "slot_number": 1,
+          "name_en": "Amrit",
+          "name_hi": "अमृत",
+          "quality_en": "Best",
+          "quality_hi": "सर्वोत्तम",
+          "is_auspicious": true,
+          "start": "6:20 AM",
+          "end": "7:48 AM"
+        },
+        {
+          "slot_number": 2,
+          "name_en": "Kaal",
+          "name_hi": "काल",
+          "quality_en": "Inauspicious",
+          "quality_hi": "अशुभ",
+          "is_auspicious": false,
+          "start": "7:48 AM",
+          "end": "9:17 AM"
+        },
+        {
+          "slot_number": 3,
+          "name_en": "Shubh",
+          "name_hi": "शुभ",
+          "quality_en": "Auspicious",
+          "quality_hi": "शुभ",
+          "is_auspicious": true,
+          "start": "9:17 AM",
+          "end": "10:46 AM"
+        },
+        {
+          "slot_number": 4,
+          "name_en": "Rog",
+          "name_hi": "रोग",
+          "quality_en": "Inauspicious",
+          "quality_hi": "अशुभ",
+          "is_auspicious": false,
+          "start": "10:46 AM",
+          "end": "12:15 PM"
+        },
+        {
+          "slot_number": 5,
+          "name_en": "Udveg",
+          "name_hi": "उद्वेग",
+          "quality_en": "Inauspicious",
+          "quality_hi": "अशुभ",
+          "is_auspicious": false,
+          "start": "12:15 PM",
+          "end": "1:44 PM"
+        },
+        {
+          "slot_number": 6,
+          "name_en": "Chal",
+          "name_hi": "चल",
+          "quality_en": "Neutral",
+          "quality_hi": "सामान्य",
+          "is_auspicious": false,
+          "start": "1:44 PM",
+          "end": "3:13 PM"
+        },
+        {
+          "slot_number": 7,
+          "name_en": "Labh",
+          "name_hi": "लाभ",
+          "quality_en": "Auspicious",
+          "quality_hi": "शुभ",
+          "is_auspicious": true,
+          "start": "3:13 PM",
+          "end": "4:42 PM"
+        },
+        {
+          "slot_number": 8,
+          "name_en": "Amrit",
+          "name_hi": "अमृत",
+          "quality_en": "Best",
+          "quality_hi": "सर्वोत्तम",
+          "is_auspicious": true,
+          "start": "4:42 PM",
+          "end": "6:11 PM"
+        }
+      ],
+      "night": [
+        {
+          "slot_number": 1,
+          "name_en": "Chal",
+          "name_hi": "चल",
+          "quality_en": "Neutral",
+          "quality_hi": "सामान्य",
+          "is_auspicious": false,
+          "start": "6:11 PM",
+          "end": "7:42 PM"
+        },
+        {
+          "slot_number": 2,
+          "name_en": "Labh",
+          "name_hi": "लाभ",
+          "quality_en": "Auspicious",
+          "quality_hi": "शुभ",
+          "is_auspicious": true,
+          "start": "7:42 PM",
+          "end": "9:13 PM"
+        },
+        {
+          "slot_number": 3,
+          "name_en": "Amrit",
+          "name_hi": "अमृत",
+          "quality_en": "Best",
+          "quality_hi": "सर्वोत्तम",
+          "is_auspicious": true,
+          "start": "9:13 PM",
+          "end": "10:44 PM"
+        },
+        {
+          "slot_number": 4,
+          "name_en": "Kaal",
+          "name_hi": "काल",
+          "quality_en": "Inauspicious",
+          "quality_hi": "अशुभ",
+          "is_auspicious": false,
+          "start": "10:44 PM",
+          "end": "12:15 AM"
+        },
+        {
+          "slot_number": 5,
+          "name_en": "Shubh",
+          "name_hi": "शुभ",
+          "quality_en": "Auspicious",
+          "quality_hi": "शुभ",
+          "is_auspicious": true,
+          "start": "12:15 AM",
+          "end": "1:46 AM"
+        },
+        {
+          "slot_number": 6,
+          "name_en": "Rog",
+          "name_hi": "रोग",
+          "quality_en": "Inauspicious",
+          "quality_hi": "अशुभ",
+          "is_auspicious": false,
+          "start": "1:46 AM",
+          "end": "3:17 AM"
+        },
+        {
+          "slot_number": 7,
+          "name_en": "Udveg",
+          "name_hi": "उद्वेग",
+          "quality_en": "Inauspicious",
+          "quality_hi": "अशुभ",
+          "is_auspicious": false,
+          "start": "3:17 AM",
+          "end": "4:48 AM"
+        },
+        {
+          "slot_number": 8,
+          "name_en": "Chal",
+          "name_hi": "चल",
+          "quality_en": "Neutral",
+          "quality_hi": "सामान्य",
+          "is_auspicious": false,
+          "start": "4:48 AM",
+          "end": "6:20 AM"
+        }
+      ]
+    }
+  },
+  "transits": {
+    "positions": {
+      "sun": {
+        "name_en": "Sun",
+        "name_hi": "सूर्य",
+        "rashi_index": 5,
+        "rashi_en": "Virgo",
+        "rashi_hi": "कन्या",
+        "degree_in_rashi": 17.55,
+        "longitude_total": 167.55,
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी"
+      },
+      "moon": {
+        "name_en": "Moon",
+        "name_hi": "चन्द्र",
+        "rashi_index": 3,
+        "rashi_en": "Cancer",
+        "rashi_hi": "कर्क",
+        "degree_in_rashi": 6.4,
+        "longitude_total": 96.4,
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी"
+      },
+      "mercury": {
+        "name_en": "Mercury",
+        "name_hi": "बुध",
+        "rashi_index": 6,
+        "rashi_en": "Libra",
+        "rashi_hi": "तुला",
+        "degree_in_rashi": 11.59,
+        "longitude_total": 191.59,
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी"
+      },
+      "venus": {
+        "name_en": "Venus",
+        "name_hi": "शुक्र",
+        "rashi_index": 6,
+        "rashi_en": "Libra",
+        "rashi_hi": "तुला",
+        "degree_in_rashi": 14.21,
+        "longitude_total": 194.21,
+        "is_retrograde": true,
+        "motion_en": "Retrograde",
+        "motion_hi": "वक्री"
+      },
+      "mars": {
+        "name_en": "Mars",
+        "name_hi": "मंगल",
+        "rashi_index": 3,
+        "rashi_en": "Cancer",
+        "rashi_hi": "कर्क",
+        "degree_in_rashi": 9.78,
+        "longitude_total": 99.78,
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी"
+      },
+      "jupiter": {
+        "name_en": "Jupiter",
+        "name_hi": "गुरु (बृहस्पति)",
+        "rashi_index": 3,
+        "rashi_en": "Cancer",
+        "rashi_hi": "कर्क",
+        "degree_in_rashi": 26.07,
+        "longitude_total": 116.07,
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी"
+      },
+      "saturn": {
+        "name_en": "Saturn",
+        "name_hi": "शनि",
+        "rashi_index": 11,
+        "rashi_en": "Pisces",
+        "rashi_hi": "मीन",
+        "degree_in_rashi": 17.03,
+        "longitude_total": 347.03,
+        "is_retrograde": true,
+        "motion_en": "Retrograde",
+        "motion_hi": "वक्री"
+      },
+      "rahu": {
+        "name_en": "Rahu",
+        "name_hi": "राहु",
+        "rashi_index": 10,
+        "rashi_en": "Aquarius",
+        "rashi_hi": "कुंभ",
+        "degree_in_rashi": 4.77,
+        "longitude_total": 304.77,
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी"
+      },
+      "ketu": {
+        "name_en": "Ketu",
+        "name_hi": "केतु",
+        "rashi_index": 4,
+        "rashi_en": "Leo",
+        "rashi_hi": "सिंह",
+        "degree_in_rashi": 4.77,
+        "longitude_total": 124.77,
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी"
+      }
+    },
+    "major_transits": {
+      "jupiter": {
+        "planet_en": "Jupiter",
+        "planet_hi": "गुरु (बृहस्पति)",
+        "current_rashi_en": "Cancer",
+        "current_rashi_hi": "कर्क",
+        "ingress_date": "2026-06-01",
+        "egress_date": "2026-10-31",
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी",
+        "benefited_rashis_en": [
+          "Gemini",
+          "Pisces",
+          "Capricorn",
+          "Scorpio",
+          "Virgo"
+        ],
+        "benefited_rashis_hi": [
+          "मिथुन",
+          "मीन",
+          "मकर",
+          "वृश्चिक",
+          "कन्या"
+        ],
+        "challenged_rashis_en": [
+          "Aries",
+          "Taurus",
+          "Cancer",
+          "Leo",
+          "Libra",
+          "Sagittarius",
+          "Aquarius"
+        ],
+        "challenged_rashis_hi": [
+          "मेष",
+          "वृषभ",
+          "कर्क",
+          "सिंह",
+          "तुला",
+          "धनु",
+          "कुंभ"
+        ]
+      },
+      "saturn": {
+        "planet_en": "Saturn",
+        "planet_hi": "शनि",
+        "current_rashi_en": "Pisces",
+        "current_rashi_hi": "मीन",
+        "ingress_date": "2025-03-29",
+        "egress_date": "2027-06-02",
+        "is_retrograde": true,
+        "motion_en": "Retrograde",
+        "motion_hi": "वक्री",
+        "benefited_rashis_en": [
+          "Capricorn",
+          "Libra",
+          "Taurus"
+        ],
+        "benefited_rashis_hi": [
+          "मकर",
+          "तुला",
+          "वृषभ"
+        ],
+        "challenged_rashis_en": [
+          "Aries",
+          "Gemini",
+          "Cancer",
+          "Leo",
+          "Virgo",
+          "Scorpio",
+          "Sagittarius",
+          "Aquarius",
+          "Pisces"
+        ],
+        "challenged_rashis_hi": [
+          "मेष",
+          "मिथुन",
+          "कर्क",
+          "सिंह",
+          "कन्या",
+          "वृश्चिक",
+          "धनु",
+          "कुंभ",
+          "मीन"
+        ]
+      },
+      "rahu": {
+        "planet_en": "Rahu",
+        "planet_hi": "राहु",
+        "current_rashi_en": "Aquarius",
+        "current_rashi_hi": "कुंभ",
+        "ingress_date": "2025-05-30",
+        "egress_date": "2026-11-25",
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी",
+        "benefited_rashis_en": [
+          "Sagittarius",
+          "Virgo",
+          "Taurus",
+          "Aries"
+        ],
+        "benefited_rashis_hi": [
+          "धनु",
+          "कन्या",
+          "वृषभ",
+          "मेष"
+        ],
+        "challenged_rashis_en": [
+          "Gemini",
+          "Cancer",
+          "Leo",
+          "Libra",
+          "Scorpio",
+          "Capricorn",
+          "Aquarius",
+          "Pisces"
+        ],
+        "challenged_rashis_hi": [
+          "मिथुन",
+          "कर्क",
+          "सिंह",
+          "तुला",
+          "वृश्चिक",
+          "मकर",
+          "कुंभ",
+          "मीन"
+        ]
+      },
+      "ketu": {
+        "planet_en": "Ketu",
+        "planet_hi": "केतु",
+        "current_rashi_en": "Leo",
+        "current_rashi_hi": "सिंह",
+        "ingress_date": "2025-05-30",
+        "egress_date": "2026-11-25",
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी",
+        "benefited_rashis_en": [
+          "Gemini",
+          "Pisces",
+          "Sagittarius",
+          "Libra"
+        ],
+        "benefited_rashis_hi": [
+          "मिथुन",
+          "मीन",
+          "धनु",
+          "तुला"
+        ],
+        "challenged_rashis_en": [
+          "Aries",
+          "Taurus",
+          "Cancer",
+          "Leo",
+          "Virgo",
+          "Scorpio",
+          "Capricorn",
+          "Aquarius"
+        ],
+        "challenged_rashis_hi": [
+          "मेष",
+          "वृषभ",
+          "कर्क",
+          "सिंह",
+          "कन्या",
+          "वृश्चिक",
+          "मकर",
+          "कुंभ"
+        ]
+      },
+      "mars": {
+        "planet_en": "Mars",
+        "planet_hi": "मंगल",
+        "current_rashi_en": "Cancer",
+        "current_rashi_hi": "कर्क",
+        "ingress_date": "2026-09-18",
+        "egress_date": "2026-11-12",
+        "is_retrograde": false,
+        "motion_en": "Direct",
+        "motion_hi": "मार्गी",
+        "benefited_rashis_en": [
+          "Taurus",
+          "Aquarius"
+        ],
+        "benefited_rashis_hi": [
+          "वृषभ",
+          "कुंभ"
+        ],
+        "challenged_rashis_en": [
+          "Aries",
+          "Gemini",
+          "Cancer",
+          "Leo",
+          "Virgo",
+          "Libra",
+          "Scorpio",
+          "Sagittarius",
+          "Capricorn",
+          "Pisces"
+        ],
+        "challenged_rashis_hi": [
+          "मेष",
+          "मिथुन",
+          "कर्क",
+          "सिंह",
+          "कन्या",
+          "तुला",
+          "वृश्चिक",
+          "धनु",
+          "मकर",
+          "मीन"
+        ]
+      }
+    },
+    "active_yogas": [
+      {
+        "yoga_name_en": "Shani Sade Sati",
+        "yoga_name_hi": "शनि साढ़े साती",
+        "description_en": "Saturn transiting Pisces brings Sade Sati to Aquarius (Setting), Pisces (Peak), and Aries (Rising).",
+        "description_hi": "शनि का मीन राशि में गोचर कुंभ, मीन और मेष राशि वालों पर साढ़े साती का प्रभाव डाल रहा है।",
+        "affected_rashis_en": [
+          "Aquarius",
+          "Pisces",
+          "Aries"
+        ],
+        "affected_rashis_hi": [
+          "कुंभ",
+          "मीन",
+          "मेष"
+        ]
+      },
+      {
+        "yoga_name_en": "Shani Dhaiya (Kantaka Shani)",
+        "yoga_name_hi": "शनि की ढैय्या (कंटक व अष्टम शनि)",
+        "description_en": "Saturn in Pisces causes 4th house Dhaiya on Sagittarius and 8th house Ashtama Shani on Leo.",
+        "description_hi": "शनि के मीन गोचर से धनु पर चतुर्थ ढैय्या और सिंह पर अष्टम ढैय्या का प्रभाव है।",
+        "affected_rashis_en": [
+          "Sagittarius",
+          "Leo"
+        ],
+        "affected_rashis_hi": [
+          "धनु",
+          "सिंह"
+        ]
+      },
+      {
+        "yoga_name_en": "Guru Uccha (Jupiter Exalted in Cancer)",
+        "yoga_name_hi": "गुरु उच्च गोचर (कर्क राशि में बृहस्पति)",
+        "description_en": "Jupiter is exalted in Cancer, radiating maximum divine wisdom, prosperity, and spiritual blessings.",
+        "description_hi": "बृहस्पति अपनी उच्च राशि कर्क में गोचर कर रहे हैं, जो ज्ञान, समृद्धि और आध्यात्मिक उन्नति के लिए सर्वोत्तम है।"
+      },
+      {
+        "yoga_name_en": "Guru-Mangal Yoga (Jupiter & Mars Conjunction)",
+        "yoga_name_hi": "गुरु-मंगल युति योग",
+        "description_en": "Jupiter and Mars are conjunct in Cancer, blending wisdom with courageous energy.",
+        "description_hi": "कर्क राशि में गुरु और मंगल की युति धर्म, साहस और ऊर्जा का शक्तिशाली योग बनाती है।"
+      },
+      {
+        "yoga_name_en": "Gajakesari Yoga (Transit Moon & Jupiter in Kendra)",
+        "yoga_name_hi": "गोचर गजकेसरी योग (चंद्र और गुरु केंद्र में)",
+        "description_en": "Transit Moon is in the 1th house from Jupiter, forming auspicious Gajakesari Yoga in the heavens today.",
+        "description_hi": "आज गोचर में चंद्रमा और गुरु परस्पर केंद्र में स्थित होकर शुभ गजकेसरी योग निर्मित कर रहे हैं।"
+      }
+    ]
+  },
+  "upcoming_festivals": [
+    {
+      "date": "2026-10-06",
+      "name_en": "Indira Ekadashi",
+      "name_hi": "इन्दिरा एकादशी",
+      "day_of_week_en": "Tuesday",
+      "day_of_week_hi": "मंगलवार",
+      "category": "observance",
+      "days_away": 1,
+      "image": {
+        "file_name": "vishnu.webp",
+        "relative_path": "assets/festivals/vishnu.webp",
+        "local_asset_path": "assets/illustrations/festivals/vishnu.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/vishnu.webp"
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "name_en": "Masik Shivratri",
+      "name_hi": "मासिक शिवरात्रि",
+      "day_of_week_en": "Thursday",
+      "day_of_week_hi": "गुरुवार",
+      "category": "observance",
+      "days_away": 3,
+      "image": {
+        "file_name": "Masik Shivratri.webp",
+        "relative_path": "assets/festivals/Masik Shivratri.webp",
+        "local_asset_path": "assets/illustrations/festivals/Masik Shivratri.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Masik Shivratri.webp"
+      }
+    },
+    {
+      "date": "2026-10-08",
+      "name_en": "Pradosh Vrat (Krishna)",
+      "name_hi": "प्रदोष व्रत (कृष्ण)",
+      "day_of_week_en": "Thursday",
+      "day_of_week_hi": "गुरुवार",
+      "category": "observance",
+      "days_away": 3,
+      "image": {
+        "file_name": "Putrada Ekadashi.webp",
+        "relative_path": "assets/festivals/Putrada Ekadashi.webp",
+        "local_asset_path": "assets/illustrations/festivals/Putrada Ekadashi.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Putrada Ekadashi.webp"
+      }
+    },
+    {
+      "date": "2026-10-10",
+      "name_en": "Ashwin Amavasya",
+      "name_hi": "आश्विन अमावस्या",
+      "day_of_week_en": "Saturday",
+      "day_of_week_hi": "शनिवार",
+      "category": "observance",
+      "days_away": 5,
+      "image": {
+        "file_name": "Amavasya.webp",
+        "relative_path": "assets/festivals/Amavasya.webp",
+        "local_asset_path": "assets/illustrations/festivals/Amavasya.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Amavasya.webp"
+      }
+    },
+    {
+      "date": "2026-10-11",
+      "name_en": "Navratri (Start)",
+      "name_hi": "नवरात्रि (आरंभ)",
+      "day_of_week_en": "Sunday",
+      "day_of_week_hi": "रविवार",
+      "category": "major",
+      "days_away": 6,
+      "image": {
+        "file_name": "navratri.webp",
+        "relative_path": "assets/festivals/navratri.webp",
+        "local_asset_path": "assets/illustrations/festivals/navratri.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/navratri.webp"
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "name_en": "Durga Puja",
+      "name_hi": "दुर्गा पूजा",
+      "day_of_week_en": "Friday",
+      "day_of_week_hi": "शुक्रवार",
+      "category": "regional",
+      "days_away": 11,
+      "image": {
+        "file_name": "navratri.webp",
+        "relative_path": "assets/festivals/navratri.webp",
+        "local_asset_path": "assets/illustrations/festivals/navratri.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/navratri.webp"
+      }
+    },
+    {
+      "date": "2026-10-17",
+      "name_en": "Tula Sankranti",
+      "name_hi": "तुला संक्रांति",
+      "day_of_week_en": "Saturday",
+      "day_of_week_hi": "शनिवार",
+      "category": "observance",
+      "days_away": 12,
+      "image": {
+        "file_name": "tula.webp",
+        "relative_path": "assets/festivals/tula.webp",
+        "local_asset_path": "assets/illustrations/festivals/tula.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/tula.webp"
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "name_en": "Durga Maha Ashtami",
+      "name_hi": "दुर्गा महा अष्टमी पूजा",
+      "day_of_week_en": "Monday",
+      "day_of_week_hi": "सोमवार",
+      "category": "regional",
+      "days_away": 14,
+      "image": {
+        "file_name": "durga.webp",
+        "relative_path": "assets/festivals/durga.webp",
+        "local_asset_path": "assets/illustrations/festivals/durga.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/durga.webp"
+      }
+    },
+    {
+      "date": "2026-10-19",
+      "name_en": "Durga Maha Navami",
+      "name_hi": "दुर्गा महा नवमी पूजा",
+      "day_of_week_en": "Monday",
+      "day_of_week_hi": "सोमवार",
+      "category": "regional",
+      "days_away": 14,
+      "image": {
+        "file_name": "navratri.webp",
+        "relative_path": "assets/festivals/navratri.webp",
+        "local_asset_path": "assets/illustrations/festivals/navratri.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/navratri.webp"
+      }
+    },
+    {
+      "date": "2026-10-20",
+      "name_en": "Vijay dashami",
+      "name_hi": "विजयदशमी",
+      "day_of_week_en": "Tuesday",
+      "day_of_week_hi": "मंगलवार",
+      "category": "major",
+      "days_away": 15,
+      "image": {
+        "file_name": "vijaydashmi.webp",
+        "relative_path": "assets/festivals/vijaydashmi.webp",
+        "local_asset_path": "assets/illustrations/festivals/vijaydashmi.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/vijaydashmi.webp"
+      }
+    },
+    {
+      "date": "2026-10-21",
+      "name_en": "Durga Visarjan",
+      "name_hi": "दुर्गा विसर्जन",
+      "day_of_week_en": "Wednesday",
+      "day_of_week_hi": "बुधवार",
+      "category": "observance",
+      "days_away": 16,
+      "image": {
+        "file_name": "navratri.webp",
+        "relative_path": "assets/festivals/navratri.webp",
+        "local_asset_path": "assets/illustrations/festivals/navratri.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/navratri.webp"
+      }
+    },
+    {
+      "date": "2026-10-22",
+      "name_en": "Papankusha Ekadashi",
+      "name_hi": "पापांकुशा एकादशी",
+      "day_of_week_en": "Thursday",
+      "day_of_week_hi": "गुरुवार",
+      "category": "observance",
+      "days_away": 17,
+      "image": {
+        "file_name": "vishnu.webp",
+        "relative_path": "assets/festivals/vishnu.webp",
+        "local_asset_path": "assets/illustrations/festivals/vishnu.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/vishnu.webp"
+      }
+    },
+    {
+      "date": "2026-10-23",
+      "name_en": "Pradosh Vrat (Shukla)",
+      "name_hi": "प्रदोष व्रत (शुक्ल)",
+      "day_of_week_en": "Friday",
+      "day_of_week_hi": "शुक्रवार",
+      "category": "observance",
+      "days_away": 18,
+      "image": {
+        "file_name": "Shiva.webp",
+        "relative_path": "assets/festivals/Shiva.webp",
+        "local_asset_path": "assets/illustrations/festivals/Shiva.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Shiva.webp"
+      }
+    },
+    {
+      "date": "2026-10-25",
+      "name_en": "Sharad Purnima",
+      "name_hi": "शरद पूर्णिमा",
+      "day_of_week_en": "Sunday",
+      "day_of_week_hi": "रविवार",
+      "category": "major",
+      "days_away": 20,
+      "image": {
+        "file_name": "Kartik Purnima.webp",
+        "relative_path": "assets/festivals/Kartik Purnima.webp",
+        "local_asset_path": "assets/illustrations/festivals/Kartik Purnima.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Kartik Purnima.webp"
+      }
+    },
+    {
+      "date": "2026-10-26",
+      "name_en": "Purnima",
+      "name_hi": "पूर्णिमा",
+      "day_of_week_en": "Monday",
+      "day_of_week_hi": "सोमवार",
+      "category": "observance",
+      "days_away": 21,
+      "image": {
+        "file_name": "Kartik Purnima.webp",
+        "relative_path": "assets/festivals/Kartik Purnima.webp",
+        "local_asset_path": "assets/illustrations/festivals/Kartik Purnima.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Kartik Purnima.webp"
+      }
+    },
+    {
+      "date": "2026-10-29",
+      "name_en": "Sankashti Chaturthi",
+      "name_hi": "संकष्टी चतुर्थी",
+      "day_of_week_en": "Thursday",
+      "day_of_week_hi": "गुरुवार",
+      "category": "observance",
+      "days_away": 24,
+      "image": {
+        "file_name": "Ganesh Chaturthi.webp",
+        "relative_path": "assets/festivals/Ganesh Chaturthi.webp",
+        "local_asset_path": "assets/illustrations/festivals/Ganesh Chaturthi.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Ganesh Chaturthi.webp"
+      }
+    },
+    {
+      "date": "2026-10-29",
+      "name_en": "Karwa Chauth",
+      "name_hi": "करवा चौथ",
+      "day_of_week_en": "Thursday",
+      "day_of_week_hi": "गुरुवार",
+      "category": "major",
+      "days_away": 24,
+      "image": {
+        "file_name": "Karwa Chauth.webp",
+        "relative_path": "assets/festivals/Karwa Chauth.webp",
+        "local_asset_path": "assets/illustrations/festivals/Karwa Chauth.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Karwa Chauth.webp"
+      }
+    },
+    {
+      "date": "2026-11-01",
+      "name_en": "Ahoi Ashtami",
+      "name_hi": "Ahoi Ashtami",
+      "day_of_week_en": "Sunday",
+      "day_of_week_hi": "रविवार",
+      "category": "observance",
+      "days_away": 27,
+      "image": {
+        "file_name": "Ahoi Ashtami.webp",
+        "relative_path": "assets/festivals/Ahoi Ashtami.webp",
+        "local_asset_path": "assets/illustrations/festivals/Ahoi Ashtami.webp",
+        "github_raw_url": "https://raw.githubusercontent.com/tshashwat7/panchang/data/assets/festivals/Ahoi Ashtami.webp"
+      }
+    }
+  ]
+}
