@@ -31,6 +31,7 @@ on:
         default: ''
   repository_dispatch:
     types:
+      - panchang-data-updated
       - panchang_updated
       - trigger_automation
 
