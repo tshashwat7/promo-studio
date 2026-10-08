@@ -7,6 +7,7 @@ Supports:
 """
 from __future__ import annotations
 
+import datetime as dt
 import logging
 import time
 import requests
@@ -27,6 +28,33 @@ class InstagramCarouselPublisher:
         self.poll_attempts = poll_attempts
         self.poll_interval = poll_interval
         self.host = "https://graph.instagram.com"
+
+    def has_posted_for_date(self, target_date: dt.date, post_type: str = "panchang") -> bool:
+        """Idempotency guard: checks recent Instagram media to determine if target post was already published."""
+        try:
+            res = call(self.http, "GET", self._url(f"{self.ig_user_id}/media"),
+                       headers=self._headers,
+                       params={"fields": "id,caption,timestamp", "limit": 10})
+            items = res.get("data", [])
+            ist_tz = dt.timezone(dt.timedelta(hours=5, minutes=30))
+            for item in items:
+                ts = item.get("timestamp", "")
+                cap = item.get("caption", "")
+                if ts:
+                    try:
+                        post_dt = dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
+                        post_date = post_dt.astimezone(ist_tz).date()
+                    except Exception:
+                        post_date = None
+                    if post_date == target_date:
+                        pt_lower = post_type.lower()
+                        # Match post type keywords or date strings
+                        if pt_lower in cap.lower() or (pt_lower == "panchang" and ("पंचांग" in cap or "panchang" in cap.lower())):
+                            log.info("Found existing Instagram post %s for %s (%s)", item.get("id"), target_date, post_type)
+                            return True
+        except Exception as e:
+            log.warning("Idempotency check query failed: %s; proceeding cautiously", e)
+        return False
 
     def _url(self, path: str) -> str:
         return f"{self.host}/{self.version}/{path}"

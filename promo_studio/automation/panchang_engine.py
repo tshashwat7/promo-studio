@@ -58,6 +58,51 @@ MASA_NAMES_HI = [
     "आश्विन", "कार्तिक", "मार्गशीर्ष", "पौष", "माघ", "फाल्गुन"
 ]
 
+YOGA_NAMES = [
+    "Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana",
+    "Atiganda", "Sukarma", "Dhriti", "Shula", "Ganda",
+    "Vriddhi", "Dhruva", "Vyaghata", "Harshana", "Vajra",
+    "Siddhi", "Vyatipata", "Variyan", "Parigha", "Shiva",
+    "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma",
+    "Indra", "Vaidhriti"
+]
+
+YOGA_NAMES_HI = [
+    "विष्कम्भ", "प्रीति", "आयुष्मान", "सौभाग्य", "शोभन",
+    "अतिगण्ड", "सुकर्मा", "धृति", "शूल", "गण्ड",
+    "वृद्धि", "ध्रुव", "व्याघात", "हर्षण", "वज्र",
+    "सिद्धि", "व्यतीपात", "वरीयान्", "परिघ", "शिव",
+    "सिद्ध", "साध्य", "शुभ", "शुक्ल", "ब्रह्म",
+    "इन्द्र", "वैधृति"
+]
+
+KARANA_NAMES = [
+    "Bava", "Balava", "Kaulava", "Taitila", "Gara", "Vanija", "Vishti",
+    "Shakuni", "Chatushpada", "Naga", "Kintughna"
+]
+
+KARANA_NAMES_HI = [
+    "बव", "बालव", "कौलव", "तैतिल", "गर", "वणिज", "विष्टि (भद्रा)",
+    "शकुनि", "चतुष्पद", "नाग", "किंस्तुघ्न"
+]
+
+
+def _compute_karana(elongation: float) -> tuple[str, str]:
+    """Computes Karana (half of Tithi, 6 degrees) and Hindi name."""
+    k_slot = int((elongation % 360.0) // 6.0)
+    if k_slot == 0:
+        return ("Kintughna", "किंस्तुघ्न")
+    elif 1 <= k_slot <= 56:
+        chara_idx = (k_slot - 1) % 7
+        return (KARANA_NAMES[chara_idx], KARANA_NAMES_HI[chara_idx])
+    elif k_slot == 57:
+        return ("Shakuni", "शकुनि")
+    elif k_slot == 58:
+        return ("Chatushpada", "चतुष्पद")
+    else:
+        return ("Naga", "नाग")
+
+
 RASHI_NAMES = [
     "Mesha (Aries)", "Vrishabha (Taurus)", "Mithuna (Gemini)", "Karka (Cancer)",
     "Simha (Leo)", "Kanya (Virgo)", "Tula (Libra)", "Vrishchika (Scorpio)",
@@ -206,6 +251,15 @@ class DailyPanchang:
     choghadiya_time: str = "9:17 AM – 10:46 AM"
     tithi_end: str = ""
     nakshatra_end: str = ""
+    
+    # Pancha-Anga (Limbs 4 & 5) & Sacred Kaal Windows
+    yoga_name: str = ""
+    yoga_name_hi: str = ""
+    karana_name: str = ""
+    karana_name_hi: str = ""
+    brahma_muhurta: str = ""
+    godhuli_muhurta: str = ""
+    samvat_info: str = ""
     
     # Universal Planetary Transits & Dasha Spotlight
     gochar: GocharSnapshot | None = None
@@ -472,6 +526,26 @@ def calculate_daily_panchang(target_date: dt.date | None = None) -> DailyPanchan
     dasha_idx = (target_date.timetuple().tm_yday) % len(VIMSHOTTARI_MAHADASHAS)
     d_title, d_desc = VIMSHOTTARI_MAHADASHAS[dasha_idx]
 
+    # Yoga & Karana computation (4th & 5th Limbs of Panchang)
+    yoga_idx = int(((sun_sidereal + moon_sidereal) % 360.0) // (360.0 / 27.0))
+    yoga_name = YOGA_NAMES[yoga_idx % len(YOGA_NAMES)]
+    yoga_name_hi = YOGA_NAMES_HI[yoga_idx % len(YOGA_NAMES_HI)]
+    karana_name, karana_name_hi = _compute_karana(diff)
+
+    # Brahma Muhurta (96m to 48m before sunrise) & Godhuli Muhurta
+    brahma_start_dt = sunrise_dt - dt.timedelta(minutes=96)
+    brahma_end_dt = sunrise_dt - dt.timedelta(minutes=48)
+    brahma_str = _fmt_window(brahma_start_dt, brahma_end_dt)
+    godhuli_start_dt = sunset_dt - dt.timedelta(minutes=24)
+    godhuli_end_dt = sunset_dt + dt.timedelta(minutes=24)
+    godhuli_str = _fmt_window(godhuli_start_dt, godhuli_end_dt)
+
+    # Vikram Samvat
+    vikram_year = target_date.year + 57
+    if target_date.month < 4:
+        vikram_year -= 1
+    samvat_str = f"Vikram Samvat {vikram_year}"
+
     gochar_snapshot = GocharSnapshot(
         sun_sign=sun_rashi,
         moon_sign=moon_rashi,
@@ -528,6 +602,13 @@ def calculate_daily_panchang(target_date: dt.date | None = None) -> DailyPanchan
         sunset_str=_fmt_time(sunset_time),
         abhijit_muhurta=abhijit_str,
         rahu_kaal=rahu_str,
+        yoga_name=yoga_name,
+        yoga_name_hi=yoga_name_hi,
+        karana_name=karana_name,
+        karana_name_hi=karana_name_hi,
+        brahma_muhurta=brahma_str,
+        godhuli_muhurta=godhuli_str,
+        samvat_info=samvat_str,
         gochar=gochar_snapshot,
         content_theme=content_theme,
         is_festival=is_fest,

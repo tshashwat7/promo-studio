@@ -9,4 +9,5 @@ __pycache__/
 output/
 data/panchang-data/
 *.zip
+*export*.txt
 .DS_Store

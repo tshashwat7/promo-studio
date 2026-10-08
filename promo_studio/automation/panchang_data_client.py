@@ -33,26 +33,39 @@ LOCAL_PROD_DIR = Path(r"D:\AI My Projects\Production\panchang_master_app")
 DOWNLOADS_DIR = Path(r"C:\Users\91962\Downloads")
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 LOCAL_WORKSPACE_DATA_DIRS = [
+    REPO_ROOT,
     DOWNLOADS_DIR,
     LOCAL_PROD_DIR,
     REPO_ROOT / "data" / "panchang-data",
     Path(__file__).resolve().parent.parent / "data" / "panchang-data",
+    REPO_ROOT / "promo_studio" / "assets" / "tests" / "fixtures",
+    REPO_ROOT / "tests" / "fixtures",
 ]
 GITHUB_REPO = os.environ.get("PANCHANG_REPO", "tshashwat7/panchang")
 GITHUB_BRANCH = os.environ.get("PANCHANG_BRANCH", "data")
 
 
-def fetch_cross_repo_file(filename: str) -> dict | None:
+def fetch_cross_repo_file(filename: str, target_date: dt.date | None = None) -> dict | None:
     """Fetches a JSON dump by checking local Downloads, production disk, workspace folder, or GitHub API."""
+    candidates = []
     # 1. Local disk checks (Downloads, Production directory, workspace folder)
     for ws_dir in LOCAL_WORKSPACE_DATA_DIRS:
         ws_p = ws_dir / filename
         if ws_p.exists():
             try:
-                log.info("Ingesting authentic data from: %s", ws_p)
-                return json.loads(ws_p.read_text(encoding="utf-8"))
+                data = json.loads(ws_p.read_text(encoding="utf-8"))
+                if target_date is not None and isinstance(data, dict):
+                    f_date = data.get("date") or (data.get("today", {}).get("date") if isinstance(data.get("today"), dict) else None)
+                    if f_date == target_date.isoformat():
+                        log.info("Ingesting authentic matching data from: %s", ws_p)
+                        return data
+                candidates.append((ws_p, data))
             except Exception as e:
                 log.warning("Could not read file %s: %s", ws_p, e)
+
+    if candidates:
+        log.info("Ingesting authentic data from: %s", candidates[0][0])
+        return candidates[0][1]
 
     # 3. GitHub API (Cloud / GitHub Actions)
     pat = os.environ.get("PANCHANG_REPO_PAT") or os.environ.get("DATA_BRANCH_TOKEN")
@@ -88,8 +101,8 @@ def get_authoritative_daily_panchang(target_date: dt.date | None = None) -> Dail
         ist_tz = dt.timezone(dt.timedelta(hours=5, minutes=30))
         target_date = dt.datetime.now(ist_tz).date()
 
-    daily_json = fetch_cross_repo_file("daily_panchang.json")
-    muhurta_json = fetch_cross_repo_file("muhurta_data.json")
+    daily_json = fetch_cross_repo_file("daily_panchang.json", target_date)
+    muhurta_json = fetch_cross_repo_file("muhurta_data.json", target_date)
 
     # If daily_json is found and matches the target date, construct from Flutter dump
     if daily_json and "today" in daily_json:
@@ -283,14 +296,28 @@ def _build_panchang_from_dump(
     tithi_end_val = en_block.get("tithi_end") or hi_block.get("tithi_end") or t.get("tithi_end", "")
     nak_end_val = en_block.get("nakshatra_end") or hi_block.get("nakshatra_end") or t.get("nakshatra_end", "")
 
+    # Extract Pancha-Anga (Yoga & Karana) and Sacred Muhurtas from authentic dump
+    yoga_name = en_block.get("yoga") or t.get("yoga", "")
+    yoga_name_hi = hi_block.get("yoga") or t.get("yoga_hi", yoga_name)
+    karana_name = en_block.get("karana") or t.get("karana", "")
+    karana_name_hi = hi_block.get("karana") or t.get("karana_hi", karana_name)
+
+    shubh_hi = hi_block.get("shubh_muhurta", {}) if isinstance(hi_block.get("shubh_muhurta"), dict) else {}
+    shubh_en = en_block.get("auspicious_muhurta", {}) if isinstance(en_block.get("auspicious_muhurta"), dict) else {}
+    brahma_muhurta = shubh_hi.get("brahma_muhurta") or shubh_en.get("brahma_muhurta") or t.get("brahma_muhurta", "")
+    godhuli_muhurta = shubh_hi.get("godhuli_muhurta") or shubh_en.get("godhuli_muhurta") or t.get("godhuli_muhurta", "")
+
+    vikram_samvat = hi_block.get("vikram_samvat") or t.get("vikram_samvat")
+    samvat_info = f"Vikram Samvat {vikram_samvat}" if vikram_samvat else ""
+
     return DailyPanchang(
         date=target_date,
         date_formatted=date_formatted,
         date_formatted_hi=date_formatted_hi,
         weekday_index=weekday_idx,
-        vara_sa=t.get("vara", vara_info["name_sa"]),
-        vara_en=t.get("day_of_week", vara_info["name_en"]),
-        vara_hi=t.get("vara_hi", vara_info["name_hi"]),
+        vara_sa=t.get("vara") or t.get("vara_sa") or vara_info["name_sa"],
+        vara_en=t.get("day_of_week_en") or t.get("day_of_week") or en_block.get("vara") or vara_info["name_en"],
+        vara_hi=t.get("day_of_week_hi") or t.get("vara_hi") or hi_block.get("vara") or vara_info["name_hi"],
         deity=vara_info["deity"],
         deity_hi=vara_info["deity_hi"],
         color=vara_info["color"],
@@ -318,6 +345,13 @@ def _build_panchang_from_dump(
         choghadiya_time=chog_time,
         tithi_end=tithi_end_val,
         nakshatra_end=nak_end_val,
+        yoga_name=yoga_name,
+        yoga_name_hi=yoga_name_hi,
+        karana_name=karana_name,
+        karana_name_hi=karana_name_hi,
+        brahma_muhurta=brahma_muhurta,
+        godhuli_muhurta=godhuli_muhurta,
+        samvat_info=samvat_info,
         gochar=gochar_snapshot,
         content_theme=content_theme,
         is_festival=is_festival,

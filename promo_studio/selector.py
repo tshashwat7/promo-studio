@@ -60,24 +60,29 @@ def _transit(daily: dict) -> tuple[str, dict] | None:
 
 
 def select(daily: dict, muhurta: dict, card: str | None = None) -> PostSpec:
-    """Weekday rotation by default; `card` (panchang, muhurta or transit) overrides it."""
-    if card not in (None, "panchang", "muhurta", "transit"):
-        raise DataError(f"Unknown card {card!r}; choose panchang, muhurta or transit")
+    alias = {"plan_day": "muhurta", "jyotish": "transit"}.get(card, card)
+    if alias not in (None, "panchang", "muhurta", "transit", "festival", "kundli", "chakra"):
+        raise DataError(f"Unknown card {card!r}; choose panchang, muhurta, transit, festival, kundli or chakra")
+    card = alias
     today, en = daily["today"], daily["today"]["english"]
     when = today["date"]
     location = daily["metadata"]["location"]["name"]
     base = {"date": when, "location": location,
             "tithi": f"{en['paksha'].title()} {en['tithi_name']}", "nakshatra": en["nakshatra"]}
     festivals = today["festivals_today"]
-    if card is None and festivals:
+    if (card == "festival") or (card is None and festivals):
+        if not festivals:
+            raise DataError("No festival found for today")
         hindi = today["hindi"]
         return PostSpec("festival", when, {
             **base, "festival": festivals[0]["name_en"], "festival_hi": festivals[0]["name_hi"],
+            "festival_image": festivals[0].get("image"),
             "tithi_hi": f"{hindi['paksha']} {hindi['tithi_name']}",
             "nakshatra_hi": hindi["nakshatra"]})
     weekday = today["day_of_week_en"]
-    if card is None and weekday in ("Saturday", "Wednesday"):
-        return PostSpec("kundli" if weekday == "Saturday" else "chakra", when, {}, True)
+    if card in ("kundli", "chakra") or (card is None and weekday in ("Saturday", "Wednesday")):
+        target_kind = card if card in ("kundli", "chakra") else ("kundli" if weekday == "Saturday" else "chakra")
+        return PostSpec(target_kind, when, {}, True)
     windows = muhurta["muhurtas"]
     if card == "muhurta" or (card is None and weekday in ("Tuesday", "Thursday")):
         facts = muhurta_facts(daily, muhurta)

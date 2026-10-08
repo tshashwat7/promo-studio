@@ -22,7 +22,6 @@ FESTIVAL_ART = {
     "Durga Maha Navami": "content/festivals/navratri_festival.webp",
     "Durga Visarjan": "content/festivals/navratri_festival.webp",
     "Masik Shivratri": "content/festivals/Shivratri Festive Diptych.webp",
-    # Pradosh Vrat is a Shiva observance.
     "Pradosh Vrat (Krishna)": "content/festivals/Shivratri Festive Diptych.webp",
     "Pradosh Vrat (Shukla)": "content/festivals/Shivratri Festive Diptych.webp",
     "Indira Ekadashi": "content/festivals/Vishnu on Shesha Beneath a Cosmic Sky.webp",
@@ -35,6 +34,22 @@ FESTIVAL_ART = {
     "Janmashtami": "content/festivals/Moonlit Krishna by the Yamuna.webp",
     "Krishna Janmashtami": "content/festivals/Moonlit Krishna by the Yamuna.webp",
     "Janmastmi": "content/festivals/Moonlit Krishna by the Yamuna.webp",
+}
+# Rule-engine deity and festival image mapping (from Siddhanta rule catalog)
+DEITY_ART = {
+    "shiva.webp": "content/festivals/Shivratri Festive Diptych.webp",
+    "shivratri.webp": "content/festivals/Shivratri Festive Diptych.webp",
+    "masik shivratri.webp": "content/festivals/Shivratri Festive Diptych.webp",
+    "vishnu.webp": "content/festivals/Vishnu on Shesha Beneath a Cosmic Sky.webp",
+    "durga.webp": "content/festivals/navratri_festival.webp",
+    "navratri.webp": "content/festivals/navratri_festival.webp",
+    "krishna.webp": "content/festivals/Moonlit Krishna by the Yamuna.webp",
+    "hanuman.webp": "content/festivals/Hanuman Over Golden Temple Valley.webp",
+    "saraswati.webp": "content/festivals/saraswati_festival.webp",
+    "lakshmi.webp": "content/festivals/Diwali Ghat Glow Template.webp",
+    "diwali.webp": "content/festivals/Diwali Ghat Glow Template.webp",
+    "holi.webp": "content/festivals/Holi Festive Diptych.webp",
+    "holikadahan.webp": "content/festivals/Holi Festive Diptych.webp",
 }
 GENERIC_FESTIVAL_ART = "content/festivals/Generic festival.webp"
 # Cards built on card_kit: bilingual, with the header medallion instead of a footer logo.
@@ -92,9 +107,14 @@ def _panchang(spec: PostSpec, image: Image.Image, language: str = "en") -> Image
     return render_panchang(spec, image, language)
 
 
-def festival_art(name: str) -> str | None:
-    """Resolve only exact event matches; unknown events use neutral local artwork."""
-    art = FESTIVAL_ART.get(name, GENERIC_FESTIVAL_ART)
+def festival_art(name: str, image_file: str | None = None) -> str | None:
+    """Resolve only exact event matches or rule-assigned deity art; unknown events use neutral local artwork."""
+    art = FESTIVAL_ART.get(name)
+    if art is None and image_file:
+        art = DEITY_ART.get(Path(image_file).name.lower())
+    if art is None:
+        art = GENERIC_FESTIVAL_ART
+
     if (ROOT / art).is_file():
         return art
     if (ROOT / Path(art).name).is_file():
@@ -114,7 +134,9 @@ def render(spec: PostSpec, language: str = "en") -> Image.Image | None:
     if kind == "festival":
         from .festival_card import PanelOverflow, render_festival
 
-        art = festival_art(str(spec.facts["festival"]))
+        img_obj = spec.facts.get("festival_image")
+        img_file = img_obj.get("file_name") if isinstance(img_obj, dict) else (img_obj if isinstance(img_obj, str) else None)
+        art = festival_art(str(spec.facts["festival"]), img_file)
         if art is None:
             return None
         try:

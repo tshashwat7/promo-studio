@@ -290,8 +290,10 @@ def adapt_siddhanta(daily: Mapping[str, Any], muhurta: Mapping[str, Any],
         raise DataError("today.festivals_today must be an explicit list (empty is authoritative)")
     festival_names = [text(f.get("name_en") if isinstance(f, Mapping) else None,
                            "festivals_today.name_en") for f in festivals]
-    festival_titles = [{"name_en": name, "name_hi": text(f["name_hi"], "festivals_today.name_hi")
-                        if isinstance(f, Mapping) and f.get("name_hi") else name}
+    festival_titles = [{"name_en": name,
+                        "name_hi": text(f["name_hi"], "festivals_today.name_hi")
+                        if isinstance(f, Mapping) and f.get("name_hi") else name,
+                        "image": f.get("image") if isinstance(f, Mapping) else None}
                        for f, name in zip(festivals, festival_names)]
     transits = deepcopy(daily.get("transits") or {})
     if not isinstance(transits, dict):

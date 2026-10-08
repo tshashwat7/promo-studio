@@ -59,7 +59,7 @@ ZODIAC_ART = dict(zip(
 MAX_ZODIAC_BYTES = 200_000
 
 HINDI_MONTHS = ("जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त",
-                "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर")
+                "सितम्बर", "अक्टूबर", "नवम्बर", "दिसम्बर")
 HINDI_WEEKDAYS = ("सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार", "रविवार")
 HINDI_CITIES = {"Ujjain": "उज्जैन"}
 
@@ -166,21 +166,51 @@ class Item:
 
 def _find_font_path(face: str) -> Path:
     rel = FONT_FILES.get(face, face)
+    fonts_dir = mock_art.ROOT / "fonts"
     cands = [
         mock_art.ROOT / rel,
-        mock_art.ROOT / "fonts" / Path(rel).name,
-        Path(__file__).resolve().parent / "assets" / rel,
-        Path(__file__).resolve().parent / "assets" / "fonts" / Path(rel).name,
-        Path(r"C:\Windows\Fonts\Nirmala.ttc"),
-        Path(r"D:\AI My Projects\Production\panchang_master_app\assets\fonts") / Path(rel).name,
-        Path(r"D:\AI My Projects\Production\panchang_master_app\assets\fonts\NotoSansDevanagari-Regular.ttf"),
-        Path(r"C:\Windows\Fonts\segoeui.ttf"),
-        Path(r"C:\Windows\Fonts\georgia.ttf")
+        fonts_dir / Path(rel).name,
     ]
     for c in cands:
+        if c.exists() and c.is_file():
+            return c
+
+    # Fallbacks strictly within the project's bundled fonts directory
+    if face in ("martel", "martel-extrabold"):
+        cands_fallback = [
+            fonts_dir / "NotoSansDevanagari-Regular.ttf",
+            fonts_dir / "LibreBaskerville-Bold.ttf",
+            fonts_dir / "DMSans-Bold.ttf",
+        ]
+    elif face == "lora":
+        cands_fallback = [
+            fonts_dir / "LibreBaskerville-Bold.ttf",
+            fonts_dir / "DMSans-Bold.ttf",
+            fonts_dir / "NotoSansDevanagari-Regular.ttf",
+        ]
+    elif face in ("hind", "hind-medium", "hind-semibold"):
+        cands_fallback = [
+            fonts_dir / "NotoSansDevanagari-Regular.ttf",
+            fonts_dir / "DMSans-SemiBold.ttf",
+            fonts_dir / "DMSans-Medium.ttf",
+            fonts_dir / "DMSans-Regular.ttf",
+        ]
+    else:
+        cands_fallback = [
+            fonts_dir / "DMSans-Regular.ttf",
+            fonts_dir / "NotoSansDevanagari-Regular.ttf",
+        ]
+    for c in cands_fallback:
+        if c.exists() and c.is_file():
+            return c
+
+    for c in [
+        Path(r"C:\Windows\Fonts\Nirmala.ttc"),
+        Path(r"C:\Windows\Fonts\segoeui.ttf"),
+        Path(r"C:\Windows\Fonts\georgia.ttf"),
+    ]:
         if c.exists():
             return c
-    # Fallback system font
     return Path(r"C:\Windows\Fonts\segoeui.ttf")
 
 
@@ -303,11 +333,12 @@ def _length(draw: ImageDraw.ImageDraw, value: str, font, tracking: int = 0) -> f
 
 def _pick(draw, lang: Language, role: str, value: str, width: int, sizes: tuple[int, ...],
           tracking: int = 0):
+    """Use the first approved size that fits; refuse rather than shrink further."""
     for size in sizes:
         font = font_for(lang, role, size)
         if _length(draw, value, font, tracking) <= width:
             return font
-    return font_for(lang, role, sizes[-1])
+    raise ValueError(f"{value!r} does not fit {width}px at approved sizes {sizes}")
 
 
 def _text(draw, x: int, baseline: int, value: str, font, fill: str, role: str,
@@ -381,14 +412,16 @@ def header(draw, lang: Language, title: str, when: date, city: str,
     for drop in range(0, 41, 2):
         if _length(draw, line, font_for(lang, "date", 30)) <= width:
             dated = [_text(draw, LEFT, 270 + drop, line, font_for(lang, "date", 30), INK, "date")]
-            return items + dated, drop
+            extra = drop
         else:
             dated = [_text(draw, LEFT, 264 + drop, date_text,
                            _pick(draw, lang, "date", date_text, width, (30,)), INK, "date"),
                      _text(draw, LEFT, 296 + drop, city,
                            _pick(draw, lang, "date", city, width, (26,)), INK, "place")]
-            return items + dated, 30 + drop
-    return items + dated, 0
+            extra = 30 + drop
+        if dated[0].box[1] >= items[1].box[3] + 8:
+            return items + dated, extra
+    raise ValueError("Title descenders leave no room for the date line")
 
 
 def city_of(lang: Language, facts: dict) -> str:

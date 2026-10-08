@@ -2,10 +2,22 @@ name: Siddhanta Daily Social Automator
 
 on:
   schedule:
-    # 00:30 UTC = 06:00 AM IST daily
+    # 00:30 UTC = 06:00 AM IST (Post 1: Daily Panchang Anchor)
     - cron: '30 0 * * *'
+    # 05:30 UTC = 11:00 AM IST (Post 2: Daily Thematic / Festival / Transit / Promo)
+    - cron: '30 5 * * *'
   workflow_dispatch:
     inputs:
+      slot:
+        description: 'Post slot to publish: primary (Panchang), secondary (Thematic), both, or auto'
+        required: false
+        type: choice
+        options:
+          - 'auto'
+          - 'primary'
+          - 'secondary'
+          - 'both'
+        default: 'auto'
       dry_run:
         description: 'Run in dry-run mode (do not post to Instagram)'
         required: false
@@ -70,6 +82,10 @@ jobs:
 
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             CMD="$CMD --dry-run"
+          fi
+
+          if [ -n "${{ inputs.slot }}" ] && [ "${{ inputs.slot }}" != "auto" ]; then
+            CMD="$CMD --slot ${{ inputs.slot }}"
           fi
 
           if [ -n "${{ inputs.card_type }}" ] && [ "${{ inputs.card_type }}" != "auto" ]; then
