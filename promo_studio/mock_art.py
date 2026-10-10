@@ -9,7 +9,7 @@ from .models import PostSpec
 
 ROOT = Path(__file__).resolve().parent.parent / "assets"
 TEMPLATES = {
-    "panchang": "templates/active/panchang_template.webp",
+    "panchang": "templates/active/Serene Ghat Mandala at Dusk.png",
     "muhurta": "templates/active/plan_day_template.webp",
     "transit": "templates/active/transit_template.webp",
     "chakra": "templates/active/Panchang Temple Riverside Template.webp",
