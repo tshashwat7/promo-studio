@@ -54,20 +54,19 @@ def fetch_cross_repo_file(filename: str, target_date: dt.date | None = None) -> 
         if ws_p.exists():
             try:
                 data = json.loads(ws_p.read_text(encoding="utf-8"))
-                if target_date is not None and isinstance(data, dict):
+                f_date = None
+                if isinstance(data, dict):
                     f_date = data.get("date") or (data.get("today", {}).get("date") if isinstance(data.get("today"), dict) else None)
+                if target_date is not None:
                     if f_date == target_date.isoformat():
                         log.info("Ingesting authentic matching data from: %s", ws_p)
                         return data
-                candidates.append((ws_p, data))
+                else:
+                    candidates.append((ws_p, data))
             except Exception as e:
                 log.warning("Could not read file %s: %s", ws_p, e)
 
-    if candidates:
-        log.info("Ingesting authentic data from: %s", candidates[0][0])
-        return candidates[0][1]
-
-    # 3. GitHub API (Cloud / GitHub Actions)
+    # 2. GitHub API (Cloud / GitHub Actions)
     pat = os.environ.get("PANCHANG_REPO_PAT") or os.environ.get("DATA_BRANCH_TOKEN")
     if pat:
         import urllib.request
@@ -83,10 +82,24 @@ def fetch_cross_repo_file(filename: str, target_date: dt.date | None = None) -> 
             req = urllib.request.Request(url, headers=headers)
             with urllib.request.urlopen(req, timeout=15) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-                log.info("Successfully fetched %s from GitHub API (%s@%s)", filename, GITHUB_REPO, GITHUB_BRANCH)
-                return data
+                f_date = None
+                if isinstance(data, dict):
+                    f_date = data.get("date") or (data.get("today", {}).get("date") if isinstance(data.get("today"), dict) else None)
+                if target_date is not None:
+                    if f_date == target_date.isoformat():
+                        log.info("Successfully fetched matching %s from GitHub API (%s@%s)", filename, GITHUB_REPO, GITHUB_BRANCH)
+                        return data
+                    else:
+                        log.warning("GitHub API returned %s with date %s (expected %s)", filename, f_date, target_date)
+                else:
+                    log.info("Successfully fetched %s from GitHub API (%s@%s)", filename, GITHUB_REPO, GITHUB_BRANCH)
+                    return data
         except Exception as e:
             log.warning("Failed to fetch %s via GitHub API: %s", filename, e)
+
+    if candidates and target_date is None:
+        log.info("Ingesting authentic data from: %s", candidates[0][0])
+        return candidates[0][1]
 
     return None
 

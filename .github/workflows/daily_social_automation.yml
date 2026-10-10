@@ -58,6 +58,15 @@ jobs:
       - name: Checkout promo-studio
         uses: actions/checkout@v4
 
+      - name: Fetch Siddhanta Data from data branch
+        uses: actions/checkout@v4
+        continue-on-error: true
+        with:
+          repository: tshashwat7/panchang
+          ref: data
+          token: ${{ secrets.PANCHANG_REPO_PAT || secrets.DATA_BRANCH_TOKEN || github.token }}
+          path: data/panchang-data
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
