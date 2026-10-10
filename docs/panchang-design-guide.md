@@ -1,7 +1,7 @@
 # Daily Panchang card: production implementation guide
 
 Canvas: **1080 × 1350 px** (Instagram 4:5). All coordinates below are canvas pixels.
-Template art: [assets/templates/active/Serene Ghat Mandala at Dusk.png](../assets/templates/active/Serene Ghat Mandala at Dusk.png).
+Template art: [assets/templates/active/Serene Ghat Mandala at Dusk.webp](../assets/templates/active/Serene Ghat Mandala at Dusk.webp).
 
 The card has two layers:
 

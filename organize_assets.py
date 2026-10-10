@@ -15,7 +15,7 @@ LOCAL_ASSETS = REPO_ROOT / "assets"
 EXTERNAL_ASSETS = Path(r"D:\AI My Projects\Production\panchang_master_app\assets")
 
 TEMPLATES = [
-    "panchang_template.webp",
+    "Serene Ghat Mandala at Dusk.webp",
     "plan_day_template.webp",
     "transit_template.webp",
     "Panchang Temple Riverside Template.webp",

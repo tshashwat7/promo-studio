@@ -9,7 +9,7 @@ from .models import PostSpec
 
 ROOT = Path(__file__).resolve().parent.parent / "assets"
 TEMPLATES = {
-    "panchang": "templates/active/Serene Ghat Mandala at Dusk.png",
+    "panchang": "templates/active/Serene Ghat Mandala at Dusk.webp",
     "muhurta": "templates/active/plan_day_template.webp",
     "transit": "templates/active/transit_template.webp",
     "chakra": "templates/active/Panchang Temple Riverside Template.webp",
@@ -62,9 +62,17 @@ def _resolve_path(rel_path: str) -> Path:
     target = (ROOT / rel_path).resolve()
     if target.is_file():
         return target
+    for ext in (".webp", ".png"):
+        alt = target.with_suffix(ext)
+        if alt.is_file():
+            return alt
     flat = (ROOT / Path(rel_path).name).resolve()
     if flat.is_file():
         return flat
+    for ext in (".webp", ".png"):
+        flat_alt = flat.with_suffix(ext)
+        if flat_alt.is_file():
+            return flat_alt
     return target
 
 
