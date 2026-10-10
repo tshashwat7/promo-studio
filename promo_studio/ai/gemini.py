@@ -19,15 +19,26 @@ class GeminiProvider(AIProvider):
         self.model = model
 
     def generate(self, system: str, user: str, temperature: float = 0.8) -> str:
+        import time
         config = self._types.GenerateContentConfig(
             system_instruction=system, temperature=temperature,
             response_mime_type="application/json")
-        try:
-            response = self._client.models.generate_content(
-                model=self.model, contents=user, config=config)
-        except Exception as exc:  # SDK raises several exception types
-            text = str(exc)
-            if "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower():
-                raise RateLimitError(text) from exc
-            raise AIError(text) from exc
-        return response.text or ""
+
+        last_exc = None
+        for attempt in range(1, 4):
+            try:
+                response = self._client.models.generate_content(
+                    model=self.model, contents=user, config=config)
+                return response.text or ""
+            except Exception as exc:
+                last_exc = exc
+                text = str(exc)
+                if ("503" in text or "UNAVAILABLE" in text or "500" in text) and attempt < 3:
+                    time.sleep(2 * attempt)
+                    continue
+                if "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower():
+                    raise RateLimitError(text) from exc
+                raise AIError(text) from exc
+        if last_exc:
+            raise AIError(str(last_exc)) from last_exc
+        return ""
