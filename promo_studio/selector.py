@@ -60,7 +60,7 @@ def _transit(daily: dict) -> tuple[str, dict] | None:
 
 
 def select(daily: dict, muhurta: dict, card: str | None = None) -> PostSpec:
-    alias = {"plan_day": "muhurta", "jyotish": "transit"}.get(card, card)
+    alias = {"plan_day": "muhurta", "jyotish": "transit"}.get(card, card) if card is not None else None
     if alias not in (None, "panchang", "muhurta", "transit", "festival", "kundli", "chakra"):
         raise DataError(f"Unknown card {card!r}; choose panchang, muhurta, transit, festival, kundli or chakra")
     card = alias
