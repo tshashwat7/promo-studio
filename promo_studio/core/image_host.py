@@ -32,47 +32,21 @@ class ImgBBHost(ImageHost):
             raise ImageHostError("Image host API key is missing. Add it in Settings.")
         try:
             with open(path, "rb") as fh:
-                encoded = base64.b64encode(fh.read()).decode("ascii")
+                encoded = base64.b64encode(fh.read())
         except OSError as exc:
             raise ImageHostError("Could not read the image file.") from exc
-
-        import time
-        last_exc = None
-        for attempt in range(1, 4):
-            try:
-                response = self.http.request("POST", self.ENDPOINT, params={"key": self.api_key},
-                                             data={"image": encoded, "expiration": self.expiration},
-                                             timeout=self.timeout)
-                try:
-                    body = response.json()
-                except ValueError:
-                    body = {}
-                data = body.get("data") if isinstance(body, dict) else {}
-                if not isinstance(data, dict):
-                    data = {}
-                url = data.get("display_url") or data.get("url") or (data.get("image") or {}).get("url")
-                if response.status_code == 200 and url:
-                    return url
-                if response.status_code >= 500 and attempt < 3:
-                    time.sleep(3 * attempt)
-                    continue
-                if response.status_code >= 400 or not url:
-                    err_msg = ""
-                    if isinstance(body, dict):
-                        err_obj = body.get("error")
-                        if isinstance(err_obj, dict):
-                            err_msg = err_obj.get("message", "")
-                        elif isinstance(err_obj, str):
-                            err_msg = err_obj
-                    detail = f": {err_msg}" if err_msg else ""
-                    raise ImageHostError(f"Image host rejected the upload (HTTP {response.status_code}){detail}.",
-                                         retryable=response.status_code >= 500)
-            except requests.RequestException as exc:
-                last_exc = exc
-                if attempt < 3:
-                    time.sleep(3 * attempt)
-                    continue
-                raise ImageHostError(f"Image upload failed ({type(exc).__name__}).", retryable=True) from None
-        if last_exc:
-            raise ImageHostError(f"Image upload failed ({type(last_exc).__name__}).", retryable=True) from None
-        return ""
+        try:
+            response = self.http.request("POST", self.ENDPOINT, params={"key": self.api_key},
+                                         data={"image": encoded, "expiration": self.expiration},
+                                         timeout=self.timeout)
+        except requests.RequestException as exc:  # message deliberately excludes the URL (it holds the key)
+            raise ImageHostError(f"Image upload failed ({type(exc).__name__}).", retryable=True) from None
+        try:
+            body = response.json()
+        except ValueError:
+            body = {}
+        url = (body.get("data") or {}).get("url") if isinstance(body, dict) else None
+        if response.status_code >= 400 or not url:
+            raise ImageHostError(f"Image host rejected the upload (HTTP {response.status_code}).",
+                                 retryable=response.status_code >= 500)
+        return url
