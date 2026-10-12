@@ -92,7 +92,7 @@ def plan(draw: ImageDraw.ImageDraw, facts: dict, when: date,
         items.append(_text(draw, LEFT, y + 22, note,
                            _pick(draw, lang, "note", note, full, (24, 22)), kit.INK, "note"))
 
-    items.append(kit.button(draw, lang))
+    items.append(kit.button(draw, lang, lang.labels["panchang_cta"]))
     return items
 
 

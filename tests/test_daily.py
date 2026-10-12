@@ -88,10 +88,13 @@ class DailyTests(unittest.TestCase):
         daily, muhu = inputs()
         data, windows = adapt_siddhanta(daily, muhu, TODAY)
         self.assertEqual(select(data, windows).kind, "panchang")
-        daily["today"]["festivals_today"] = [{"name_en": "Indira Ekadashi", "name_hi": "इन्दिरा एकादशी"}]
+        daily["today"]["festivals_today"] = [{"id": "indira_ekadashi",
+                              "name_en": "Indira Ekadashi",
+                              "name_hi": "इन्दिरा एकादशी"}]
         data, windows = adapt_siddhanta(daily, muhu, TODAY)
         spec = select(data, windows)
         self.assertEqual(spec.kind, "festival")
+        self.assertEqual(spec.to_dict()["facts"]["festival_id"], "indira_ekadashi")
         self.assertEqual(spec.to_dict()["facts"]["festival"], "Indira Ekadashi")
 
     def test_weekday_rules_and_factual_transit(self):
@@ -120,7 +123,8 @@ class DailyTests(unittest.TestCase):
                 target = date(2026, 10, day_number)
                 on_day(daily, muhu, target)
                 if kind == "festival":
-                    daily["today"]["festivals_today"] = [{"name_en": "Navratri (Start)",
+                    daily["today"]["festivals_today"] = [{"id": "navratri_start_shaiva",
+                                                           "name_en": "Navratri (Start)",
                                                            "name_hi": "नवरात्रि"}]
                 result = PromoStudio(Path(folder) / kind).generate(
                     daily, muhu, expected_date=target)
@@ -149,43 +153,24 @@ class DailyTests(unittest.TestCase):
 
     def test_festival_art_exact_match_and_neutral_unknown(self):
         import promo_studio.mock_art as artwork
-        cases = {
-            "Navratri (Start)": "navratri_festival.webp",
-            "Durga Puja": "navratri_festival.webp",
-            "Durga Maha Ashtami": "navratri_festival.webp",
-            "Durga Maha Navami": "navratri_festival.webp",
-            "Durga Visarjan": "navratri_festival.webp",
-            "Masik Shivratri": "Shivratri Festive Diptych.webp",
-            "Pradosh Vrat (Krishna)": "Shivratri Festive Diptych.webp",
-            "Pradosh Vrat (Shukla)": "Shivratri Festive Diptych.webp",
-            "Indira Ekadashi": "Vishnu on Shesha Beneath a Cosmic Sky.webp",
-            "Papankusha Ekadashi": "Vishnu on Shesha Beneath a Cosmic Sky.webp",
-            "Rama Ekadashi": "Vishnu on Shesha Beneath a Cosmic Sky.webp",
-            "Saraswati Puja": "saraswati_festival.webp",
-            "Diwali": "Diwali Ghat Glow Template.webp",
-            "Holi": "Holi Festive Diptych.webp",
-            "Hanuman Jayanti": "Hanuman Over Golden Temple Valley.webp",
-            "Janmashtami": "Moonlit Krishna by the Yamuna.webp",
-            "Krishna Janmashtami": "Moonlit Krishna by the Yamuna.webp",
-            "Janmastmi": "Moonlit Krishna by the Yamuna.webp",
-        }
-        for name, filename in cases.items():
-            with self.subTest(name=name):
-                self.assertEqual(artwork.festival_art(name), f"content/festivals/{filename}")
-                self.assertTrue((artwork.ROOT / artwork.festival_art(name)).is_file() or (artwork.ROOT / Path(artwork.festival_art(name)).name).is_file())
+        cases = {event_id: Path(path).name for event_id, path in artwork.FESTIVAL_ART.items()}
+        for event_id, filename in cases.items():
+            with self.subTest(event_id=event_id):
+                self.assertEqual(artwork.festival_art(event_id), f"content/festivals/{filename}")
+                self.assertTrue((artwork.ROOT / artwork.festival_art(event_id)).is_file())
         self.assertEqual(artwork.ROOT.name, "assets")
         self.assertTrue(all(path.startswith("templates/active/") for path in artwork.TEMPLATES.values()))
         self.assertEqual(artwork.LOGO, "branding/logo.webp")
         self.assertEqual(artwork.GENERIC_FESTIVAL_ART, "content/festivals/Generic festival.webp")
-        self.assertEqual(artwork.festival_art("Unknown Observance"), artwork.GENERIC_FESTIVAL_ART)
-        self.assertNotEqual(artwork.festival_art("Navratri (Start)"),
-                            artwork.festival_art("Not Navratri (Start)"))
-        self.assertNotEqual(artwork.festival_art("Janmashtami"),
-                            artwork.festival_art("Masik Shivratri"))
+        self.assertEqual(artwork.festival_art("unknown_event_id"), artwork.GENERIC_FESTIVAL_ART)
+        self.assertNotEqual(artwork.festival_art("janmashtami"),
+                            artwork.festival_art("shivratri_monthly"))
         daily, muhu = inputs()
-        for name in (*cases, "Unknown Observance"):
-            with self.subTest(render=name):
-                daily["today"]["festivals_today"] = [{"name_en": name, "name_hi": "पर्व"}]
+        for event_id in (*cases, "unknown_event_id"):
+            with self.subTest(render=event_id):
+                daily["today"]["festivals_today"] = [{"id": event_id,
+                                                       "name_en": "Example Festival",
+                                                       "name_hi": "उदाहरण पर्व"}]
                 data, windows = adapt_siddhanta(daily, muhu, TODAY)
                 spec = select(data, windows)
                 self.assertEqual(spec.kind, "festival")
@@ -201,9 +186,9 @@ class DailyTests(unittest.TestCase):
             generic.parent.mkdir(parents=True)
             Image.new("RGB", (32, 32), "#F0D5AA").save(generic)
             with patch.object(artwork, "ROOT", root):
-                self.assertEqual(artwork.festival_art("Navratri (Start)"),
+                self.assertEqual(artwork.festival_art("navratri_start_shaiva"),
                                  artwork.GENERIC_FESTIVAL_ART)
-                self.assertEqual(artwork.festival_art("Unknown Observance"),
+                self.assertEqual(artwork.festival_art("unknown_event_id"),
                                  artwork.GENERIC_FESTIVAL_ART)
 
     def test_panchang_facts_overlay_art_without_panels(self):
@@ -224,7 +209,8 @@ class DailyTests(unittest.TestCase):
     def test_festival_render_and_missing_art_preserve_facts(self):
         import promo_studio.mock_art as artwork
         daily, muhu = inputs()
-        daily["today"]["festivals_today"] = [{"name_en": "Navratri (Start)",
+        daily["today"]["festivals_today"] = [{"id": "navratri_start_shaiva",
+                             "name_en": "Navratri (Start)",
                                                  "name_hi": "नवरात्रि"}]
         daily["today"]["image"] = {"local_asset_path": "../../untrusted.webp"}
         with tempfile.TemporaryDirectory() as folder:
@@ -242,7 +228,7 @@ class DailyTests(unittest.TestCase):
     def test_logo_on_all_daily_paths_and_missing_logo_fallback(self):
         import promo_studio.mock_art as artwork
         from promo_studio.festival_card import LOGO, PAD, SCENE_PANELS
-        panel = SCENE_PANELS[artwork.FESTIVAL_ART["Navratri (Start)"]]
+        panel = SCENE_PANELS[artwork.FESTIVAL_ART["navratri_start_shaiva"]]
         positions = {"festival": (panel[0] + PAD + LOGO // 2, panel[1] + PAD + LOGO // 2)}
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
@@ -253,7 +239,8 @@ class DailyTests(unittest.TestCase):
                     on_day(daily, muhu, day)
                     if kind == "festival":
                         daily["today"]["festivals_today"] = [
-                            {"name_en": "Navratri (Start)", "name_hi": "नवरात्रि"}]
+                            {"id": "navratri_start_shaiva", "name_en": "Navratri (Start)",
+                             "name_hi": "नवरात्रि"}]
                     branded = PromoStudio(root / kind / "branded").generate(
                         daily, muhu, expected_date=day)
                     with patch.object(artwork, "LOGO", "missing-logo.webp"):
@@ -284,11 +271,12 @@ class DailyTests(unittest.TestCase):
     def test_corrupt_festival_art_fails_without_partial_image(self):
         import promo_studio.mock_art as artwork
         daily, muhu = inputs()
-        daily["today"]["festivals_today"] = [{"name_en": "Navratri (Start)",
-                                                 "name_hi": "नवरात्रि"}]
+        daily["today"]["festivals_today"] = [{"id": "navratri_start_shaiva",
+                             "name_en": "Navratri (Start)",
+                             "name_hi": "नवरात्रि"}]
         with tempfile.TemporaryDirectory() as folder:
             root = Path(folder)
-            art_path = root / artwork.FESTIVAL_ART["Navratri (Start)"]
+            art_path = root / artwork.FESTIVAL_ART["navratri_start_shaiva"]
             art_path.parent.mkdir(parents=True)
             art_path.write_bytes(b"not an image")
             with patch.object(artwork, "ROOT", root):

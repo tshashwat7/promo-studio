@@ -70,8 +70,12 @@ def _position_problem(positions: Any, en: Mapping, day: date) -> str | None:
             return f"give {key} an invalid rashi_index"
         if (p.get("rashi_en"), p.get("rashi_hi")) != (ZODIAC[index], ZODIAC_HI[index]):
             return f"name {key}'s rashi inconsistently with rashi_index {index}"
-        if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in (degree, total)) \
-                or not 0 <= degree < 30 or _separation(index * 30 + degree, total) > 0.02:
+        if (isinstance(degree, bool) or not isinstance(degree, (int, float))
+            or isinstance(total, bool) or not isinstance(total, (int, float))):
+            return f"give {key} a degree that disagrees with its longitude"
+        degree_value, total_value = float(degree), float(total)
+        if not 0 <= degree_value < 30 or \
+            _separation(index * 30 + degree_value, total_value) > 0.02:
             return f"give {key} a degree that disagrees with its longitude"
         if not isinstance(p.get("is_retrograde"), bool) or p.get("motion_en") != (
                 "Retrograde" if p["is_retrograde"] else "Direct"):
@@ -100,10 +104,15 @@ def _position_problem(positions: Any, en: Mapping, day: date) -> str | None:
 
 def _rashi_problem(key: str, item: Mapping) -> str | None:
     """Why a transit's favourable/challenging Moon-sign lists cannot be shown, or None."""
-    lists = [item.get(field) for field in RASHI_LISTS]
-    if key not in GOCHAR_GOOD or not all(isinstance(names, list) for names in lists):
+    if key not in GOCHAR_GOOD:
         return "are missing"
-    good_en, good_hi, hard_en, hard_hi = lists
+    good_en = item.get("benefited_rashis_en")
+    good_hi = item.get("benefited_rashis_hi")
+    hard_en = item.get("challenged_rashis_en")
+    hard_hi = item.get("challenged_rashis_hi")
+    if (not isinstance(good_en, list) or not isinstance(good_hi, list)
+            or not isinstance(hard_en, list) or not isinstance(hard_hi, list)):
+        return "are missing"
     at = ZODIAC.index(item["current_rashi_en"])
     expected = {z for i, z in enumerate(ZODIAC) if (at - i) % 12 + 1 in GOCHAR_GOOD[key]}
     if set(good_en) != expected or sorted(good_en + hard_en) != sorted(ZODIAC):
@@ -217,7 +226,8 @@ def adapt_siddhanta(daily: Mapping[str, Any], muhurta: Mapping[str, Any],
         raise DataError("Siddhanta today and metadata objects are required")
     en, hi = today.get("english"), today.get("hindi")
     location = meta.get("location")
-    if not all(isinstance(v, Mapping) for v in (en, hi, location)):
+    if not isinstance(en, Mapping) or not isinstance(hi, Mapping) \
+            or not isinstance(location, Mapping):
         raise DataError("Siddhanta today.english, today.hindi and metadata.location are required")
     try:
         actual = date.fromisoformat(text(today.get("date"), "today.date"))
@@ -230,7 +240,8 @@ def adapt_siddhanta(daily: Mapping[str, Any], muhurta: Mapping[str, Any],
     location_name = text(location.get("name"), "metadata.location.name")
     if location.get("timezone") != "Asia/Kolkata":
         raise DataError("This renderer supports only Asia/Kolkata source times")
-    other = (muhurta.get("metadata") or {}).get("location")
+    muhurta_meta = muhurta.get("metadata")
+    other = muhurta_meta.get("location") if isinstance(muhurta_meta, Mapping) else None
     if isinstance(other, Mapping):
         for axis in ("latitude", "longitude"):
             a, b = location.get(axis), other.get(axis)
@@ -252,18 +263,22 @@ def adapt_siddhanta(daily: Mapping[str, Any], muhurta: Mapping[str, Any],
     windows = muhurta.get("muhurtas")
     if not isinstance(windows, Mapping):
         raise DataError("muhurta.muhurtas is required")
-    clean_windows = {k: window(v, f"muhurtas.{k}") for k, v in windows.items()
-                     if k in ("abhijit_muhurta", "rahu_kaal", "yamaghanta", "gulika_kaal")
-                     and v is not None}
+    clean_windows: dict[str, dict[str, Any]] = {
+        k: window(v, f"muhurtas.{k}") for k, v in windows.items()
+        if k in ("abhijit_muhurta", "rahu_kaal", "yamaghanta", "gulika_kaal")
+        and v is not None}
     for key, clean in clean_windows.items():
-        flag = windows[key].get("is_auspicious")
+        source_window = windows.get(key)
+        if not isinstance(source_window, Mapping):
+            continue
+        flag = source_window.get("is_auspicious")
         if flag is not None:
             if not isinstance(flag, bool):
                 raise DataError(f"muhurtas.{key}.is_auspicious must be true or false")
             clean["is_auspicious"] = flag
         for lang in ("en", "hi"):
-            if windows[key].get(f"name_{lang}") is not None:
-                clean[f"name_{lang}"] = text(windows[key][f"name_{lang}"],
+            if source_window.get(f"name_{lang}") is not None:
+                clean[f"name_{lang}"] = text(source_window[f"name_{lang}"],
                                              f"muhurtas.{key}.name_{lang}")
     warnings = []
     if "sunrise" in en_clean and "sunset" in en_clean:
@@ -290,11 +305,16 @@ def adapt_siddhanta(daily: Mapping[str, Any], muhurta: Mapping[str, Any],
         raise DataError("today.festivals_today must be an explicit list (empty is authoritative)")
     festival_names = [text(f.get("name_en") if isinstance(f, Mapping) else None,
                            "festivals_today.name_en") for f in festivals]
-    festival_titles = [{"name_en": name,
-                        "name_hi": text(f["name_hi"], "festivals_today.name_hi")
-                        if isinstance(f, Mapping) and f.get("name_hi") else name,
-                        "image": f.get("image") if isinstance(f, Mapping) else None}
-                       for f, name in zip(festivals, festival_names)]
+    festival_titles = []
+    for festival, name in zip(festivals, festival_names):
+        festival_record = festival if isinstance(festival, Mapping) else {}
+        raw_id = festival_record.get("id")
+        event_id = raw_id.strip() if isinstance(raw_id, str) and raw_id.strip() else None
+        raw_hindi_name = festival_record.get("name_hi")
+        name_hi = text(raw_hindi_name, "festivals_today.name_hi") \
+            if raw_hindi_name else name
+        festival_titles.append({"id": event_id, "name_en": name, "name_hi": name_hi,
+                                "image": festival_record.get("image")})
     transits = deepcopy(daily.get("transits") or {})
     if not isinstance(transits, dict):
         raise DataError("transits must be an object")

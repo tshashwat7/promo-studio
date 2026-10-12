@@ -519,11 +519,13 @@ def publish_post_unit(
     # 4. Upload Carousel Slides to Image Host (ImgBB)
     img_host = ImgBBHost(img_host_key)
     uploaded_urls: list[str] = []
-    for s_path in slide_paths:
+    for idx, s_path in enumerate(slide_paths):
         log.info("Uploading slide %s to image host...", s_path.name)
         url = img_host.upload(str(s_path))
+        log.info("Slide %d URL: %s", idx + 1, url)
         uploaded_urls.append(url)
-    log.info("Uploaded %d Image URL(s)", len(uploaded_urls))
+    log.info("Uploaded %d Image URL(s). Pausing 4s for public CDN edge propagation...", len(uploaded_urls))
+    time.sleep(4)
 
     # 5. Instagram Publishing via Graph API (Carousel or Single)
     ig_publisher = InstagramCarouselPublisher(ig_user_id, ig_token)

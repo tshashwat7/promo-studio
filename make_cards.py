@@ -260,6 +260,7 @@ def _mockup_spec(name: str, data: dict, muhu: dict):
         when = date.fromisoformat(festival["date"])
         from promo_studio.models import text
         return PostSpec("festival", when.isoformat(), {
+            "festival_id": festival.get("id"),
             "festival": text(festival["name_en"], "upcoming festival name"),
             "festival_hi": text(festival["name_hi"], "upcoming festival Hindi name"),
             "location": base["location"], "upcoming": True,

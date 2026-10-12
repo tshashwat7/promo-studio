@@ -79,6 +79,8 @@ class PanchangCardTests(unittest.TestCase):
         self.assertEqual(roles["detail:tithi"].value,
                          "Ashwin Masa (Purnimanta) · Until 2:08 AM, 6 Oct")
         self.assertEqual(roles["detail:nakshatra"].value, "Until 11:09 PM")
+        self.assertEqual(next(i.value for i in self.plan() if i.kind == "button"),
+                 "Check your city's Panchang on Siddhanta")
         self.assertEqual(roles["date"].value, "Monday, 5 October 2026 · Ujjain")
         self.assertEqual(roles["note"].value, "All times for Ujjain · IST")
         self.assertEqual(roles["tag:rahu"].value, "Inauspicious")
@@ -237,6 +239,8 @@ class HindiPanchangCardTests(unittest.TestCase):
         self.assertEqual(roles["detail:tithi"].value,
                          "आश्विन मास (पूर्णिमांत) · समाप्ति: 2:08 AM, 6 अक्टूबर")
         self.assertEqual(roles["detail:nakshatra"].value, "समाप्ति: 11:09 PM")
+        self.assertEqual(next(i.value for i in self.plan() if i.kind == "button"),
+                 "अपने शहर का पंचांग सिद्धान्त पर देखें")
         self.assertEqual(roles["date"].value, "सोमवार, 5 अक्टूबर 2026 · उज्जैन")
         self.assertEqual(hindi["date_formatted"], "5 अक्टूबर 2026, सोमवार")
         self.assertEqual(roles["tag:rahu"].value, "अशुभ")

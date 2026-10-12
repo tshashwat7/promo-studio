@@ -24,9 +24,11 @@ WORST = {"location": "Thiruvananthapuram, India", "tithi": "Krishna Chaturdashi"
          "tithi_hi": "कृष्ण पक्ष चतुर्दशी", "nakshatra": "Uttara Bhadrapada",
          "nakshatra_hi": "उत्तर भाद्रपद", "festival": "Pradosh Vrat (Krishna)",
          "festival_hi": "प्रदोष व्रत (कृष्ण)"}
-UPCOMING = {"festival": "Navratri (Start)", "festival_hi": "नवरात्रि (आरंभ)",
+UPCOMING = {"festival_id": "navratri_start_shaiva", "festival": "Navratri (Start)",
+            "festival_hi": "नवरात्रि (आरंभ)",
             "location": "Ujjain, India", "upcoming": True, "days_away": 5}
 HINDI_NAMES = {
+    "Festival": "पर्व",
     "Navratri (Start)": "नवरात्रि (आरंभ)", "Durga Puja": "दुर्गा पूजा",
     "Durga Maha Ashtami": "दुर्गा महा अष्टमी", "Durga Maha Navami": "दुर्गा महा नवमी",
     "Durga Visarjan": "दुर्गा विसर्जन", "Masik Shivratri": "मासिक शिवरात्रि",
@@ -39,10 +41,11 @@ HINDI_NAMES = {
 
 
 def names_by_scene():
-    """Every mapped festival on its own scene; the neutral scene gets an unmapped name."""
-    scenes = {mock_art.GENERIC_FESTIVAL_ART: ["Sankashti Chaturthi", "Pradosh Vrat (Krishna)"]}
-    for name, art in mock_art.FESTIVAL_ART.items():
-        scenes.setdefault(art, []).append(name)
+    """Exercise each scene with short copy; the neutral scene gets an unmapped name."""
+    scenes = {mock_art.GENERIC_FESTIVAL_ART: ["Sankashti Chaturthi"]}
+    for art in mock_art.FESTIVAL_ART.values():
+        if "Festival" not in scenes.setdefault(art, []):
+            scenes[art].append("Festival")
     return scenes
 
 
@@ -64,7 +67,7 @@ class FestivalCardTests(unittest.TestCase):
         self.draw = ImageDraw.Draw(Image.new("RGB", (1080, 1350)))
 
     def plan(self, spec, language="en", art=None):
-        art = art or mock_art.festival_art(spec.facts["festival"])
+        art = art or mock_art.festival_art(spec.facts.get("festival_id"))
         return card.plan(self.draw, spec.to_dict()["facts"], date.fromisoformat(spec.date), art,
                          language)
 
@@ -78,11 +81,13 @@ class FestivalCardTests(unittest.TestCase):
         self.assertEqual(en["name:0"].value, "Indira Ekadashi")
         self.assertEqual(en["value:tithi"].value, "Krishna Ekadashi")
         self.assertEqual(en["value:nakshatra"].value, "Ashlesha")
-        self.assertEqual(en["date"].value, "Tuesday, 6 October 2026 · Ujjain")
+        self.assertEqual(en["date"].value, "6 October 2026")
+        self.assertEqual(en["place"].value, "Tuesday · Ujjain")
         self.assertEqual(hi["name:0"].value, "इन्दिरा एकादशी")
         self.assertEqual(hi["value:tithi"].value, "कृष्ण पक्ष एकादशी")
         self.assertEqual(hi["value:nakshatra"].value, "आश्लेषा")
-        self.assertEqual(hi["date"].value, "मंगलवार, 6 अक्टूबर 2026 · उज्जैन")
+        self.assertEqual(hi["date"].value, "6 अक्टूबर 2026")
+        self.assertEqual(hi["place"].value, "मंगलवार · उज्जैन")
         self.assertEqual(hi["label:festival"].value, "आज का पर्व")
 
     def test_parana_window_on_the_fast_day_is_never_shown(self):
@@ -100,6 +105,7 @@ class FestivalCardTests(unittest.TestCase):
         self.assertEqual((roles["label:festival"].value, roles["name:0"].value,
                           roles["countdown"].value),
                          ("UPCOMING FESTIVAL", "Navratri Begins", "In 5 days"))
+        self.assertEqual(roles["button"].value, "Check Festival & Muhurat")
         self.assertEqual((roles["date"].value, roles["place"].value),
                          ("11 October 2026", "Sunday · Ujjain"))
         self.assertNotIn("value:tithi", roles)
@@ -108,7 +114,8 @@ class FestivalCardTests(unittest.TestCase):
             self.assertEqual(card._countdown(card.COPY["hi"], days), hi)
 
     def test_every_mapped_scene_has_a_panel(self):
-        arts = set(mock_art.FESTIVAL_ART.values()) | {mock_art.GENERIC_FESTIVAL_ART}
+        arts = (set(mock_art.FESTIVAL_ART.values()) | set(mock_art.DEITY_ART.values())
+            | {mock_art.GENERIC_FESTIVAL_ART})
         self.assertEqual(arts, set(card.SCENE_PANELS))
 
     def test_geometry_with_every_real_name_on_its_scene(self):
@@ -118,7 +125,7 @@ class FestivalCardTests(unittest.TestCase):
             for name in names:
                 for extra in ({}, {"upcoming": True, "days_away": 6}):
                     facts = {**WORST, **extra, "festival": name,
-                             "festival_hi": HINDI_NAMES[name], "location": "Ujjain, India"}
+                            "festival_hi": HINDI_NAMES.get(name, name), "location": "Ujjain, India"}
                     for language in ("en", "hi"):
                         with self.subTest(name=name, language=language, upcoming=bool(extra)):
                             items = self.plan(PostSpec("festival", widest[language], facts),
@@ -137,7 +144,8 @@ class FestivalCardTests(unittest.TestCase):
                                                  f"{a.role} overlaps {b.role}")
 
     def test_vishnu_uses_one_band_above_the_serpent_hoods(self):
-        roles = self.roles(self.plan(today_spec()))
+        spec = today_spec()
+        roles = self.roles(self.plan(spec, art=mock_art.DEITY_ART["vishnu.webp"]))
         panel = roles["panel"].box
         self.assertLessEqual(panel[3], 416)
         self.assertEqual(roles["value:tithi"].origin[1], roles["value:nakshatra"].origin[1])
@@ -145,10 +153,11 @@ class FestivalCardTests(unittest.TestCase):
         self.assertLess(roles["button"].box[3], roles["name:0"].box[1])
 
     def test_overflow_moves_to_the_neutral_scene_instead_of_covering_the_deity(self):
-        facts = {**WORST, "location": "Ujjain, India", "festival": "Masik Shivratri",
+        facts = {**WORST, "location": "Ujjain, India", "festival_id": "shivratri_monthly",
+             "festival": "Masik Shivratri",
                  "festival_hi": HINDI_NAMES["Masik Shivratri"]}
         spec = PostSpec("festival", "2026-10-11", facts)
-        art = mock_art.festival_art("Masik Shivratri")
+        art = mock_art.festival_art("shivratri_monthly")
         cramped = {**card.SCENE_PANELS, art: card.SCENE_PANELS[art][:3] + (600,)}
         with patch.dict(card.SCENE_PANELS, cramped):
             with self.assertRaises(card.PanelOverflow):
@@ -162,7 +171,7 @@ class FestivalCardTests(unittest.TestCase):
         for art, names in names_by_scene().items():
             scene = ImageOps.fit(mock_art._open(art), (1080, 1350))
             facts = {**WORST, "location": "Ujjain, India", "festival": names[0],
-                     "festival_hi": HINDI_NAMES[names[0]]}
+                     "festival_hi": HINDI_NAMES.get(names[0], names[0])}
             for language in ("en", "hi"):
                 items = self.plan(PostSpec("festival", "2026-10-11", facts), language, art)
                 background = kit.draw_items(scene.copy(), items[:1])

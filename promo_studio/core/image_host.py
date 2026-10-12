@@ -47,7 +47,10 @@ class ImgBBHost(ImageHost):
                     body = response.json()
                 except ValueError:
                     body = {}
-                url = (body.get("data") or {}).get("url") if isinstance(body, dict) else None
+                data = body.get("data") if isinstance(body, dict) else {}
+                if not isinstance(data, dict):
+                    data = {}
+                url = data.get("display_url") or data.get("url") or (data.get("image") or {}).get("url")
                 if response.status_code == 200 and url:
                     return url
                 if response.status_code >= 500 and attempt < 3:

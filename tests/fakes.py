@@ -18,7 +18,7 @@ class FakeHttp:
 
     def request(self, method, url, **kwargs):
         self.calls.append((method, url, kwargs))
-        reply = self.replies.pop(0)
+        reply = self.replies.pop(0) if len(self.replies) > 1 else (self.replies[0] if self.replies else FakeResponse(500, {}))
         if isinstance(reply, Exception):
             raise reply
         return reply if isinstance(reply, FakeResponse) else FakeResponse(200, reply)

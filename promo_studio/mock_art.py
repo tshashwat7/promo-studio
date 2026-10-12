@@ -16,24 +16,47 @@ TEMPLATES = {
     "kundli": "templates/active/Panchang Temple Riverside Template.webp",
 }
 FESTIVAL_ART = {
-    "Navratri (Start)": "content/festivals/navratri_festival.webp",
-    "Durga Puja": "content/festivals/navratri_festival.webp",
-    "Durga Maha Ashtami": "content/festivals/navratri_festival.webp",
-    "Durga Maha Navami": "content/festivals/navratri_festival.webp",
-    "Durga Visarjan": "content/festivals/navratri_festival.webp",
-    "Masik Shivratri": "content/festivals/Shivratri Festive Diptych.webp",
-    "Pradosh Vrat (Krishna)": "content/festivals/Shivratri Festive Diptych.webp",
-    "Pradosh Vrat (Shukla)": "content/festivals/Shivratri Festive Diptych.webp",
-    "Indira Ekadashi": "content/festivals/Vishnu on Shesha Beneath a Cosmic Sky.webp",
-    "Papankusha Ekadashi": "content/festivals/Vishnu on Shesha Beneath a Cosmic Sky.webp",
-    "Rama Ekadashi": "content/festivals/Vishnu on Shesha Beneath a Cosmic Sky.webp",
-    "Saraswati Puja": "content/festivals/saraswati_festival.webp",
-    "Diwali": "content/festivals/Diwali Ghat Glow Template.webp",
-    "Holi": "content/festivals/Holi Festive Diptych.webp",
-    "Hanuman Jayanti": "content/festivals/Hanuman Over Golden Temple Valley.webp",
-    "Janmashtami": "content/festivals/Moonlit Krishna by the Yamuna.webp",
-    "Krishna Janmashtami": "content/festivals/Moonlit Krishna by the Yamuna.webp",
-    "Janmastmi": "content/festivals/Moonlit Krishna by the Yamuna.webp",
+    # Stable Siddhanta event IDs avoid duplicate keys for localized/name variants.
+    "navratri_start_shaiva": "content/festivals/navratri_festival.webp",
+    "durga_puja": "content/festivals/navratri_festival.webp",
+    "durga_ashtami": "content/festivals/navratri_festival.webp",
+    "durga_navami": "content/festivals/navratri_festival.webp",
+    "durga_visarjan": "content/festivals/navratri_festival.webp",
+    "shivratri_monthly": "content/festivals/Shivratri Festive Diptych.webp",
+    "maha_shivratri": "content/festivals/Shiva Beneath the Himalayan Moon.png",
+    "pradosh_krishna": "content/festivals/Shiva Beneath the Himalayan Moon.png",
+    "pradosh_shukla": "content/festivals/Shiva Beneath the Himalayan Moon.png",
+    "shattila_ekadashi": "content/festivals/Lord Vishnu by the Lotus Lake.webp",
+    "jaya_ekadashi": "content/festivals/Serene Vishnu on Sheshnag at Sunrise.webp",
+    "vijaya_ekadashi": "content/festivals/Lord Vishnu at Sunrise by the Lotus Lake.webp",
+    "amalaki_ekadashi": "content/festivals/Vishnu by the Lotus Lake at Dawn.webp",
+    "papmochani_ekadashi": "content/festivals/Divine Dawn by the Sacred River.webp",
+    "kamada_ekadashi": "content/festivals/Krishna and Radha by the Sacred Sunrise.webp",
+    "varuthini_ekadashi": "content/festivals/Lord Vishnu by the Lotus Lake.webp",
+    "mohini_ekadashi": "content/festivals/Serene Vishnu on Sheshnag at Sunrise.webp",
+    "apara_ekadashi": "content/festivals/Lord Vishnu at Sunrise by the Lotus Lake.webp",
+    "padmini_ekadashi": "content/festivals/Divine Dawn by the Sacred River.webp",
+    "param_ekadashi": "content/festivals/Krishna and Radha by the Sacred Sunrise.webp",
+    "nirjala_ekadashi": "content/festivals/Vishnu by the Lotus Lake at Dawn.webp",
+    "yogini_ekadashi": "content/festivals/Divine Dawn by the Sacred River.webp",
+    "devshayani_ekadashi": "content/festivals/Krishna and Radha by the Sacred Sunrise.webp",
+    "kamika_ekadashi": "content/festivals/Lord Vishnu by the Lotus Lake.webp",
+    "putrada_ekadashi": "content/festivals/Serene Vishnu on Sheshnag at Sunrise.webp",
+    "aja_ekadashi": "content/festivals/Lord Vishnu at Sunrise by the Lotus Lake.webp",
+    "parsva_ekadashi": "content/festivals/Vishnu by the Lotus Lake at Dawn.webp",
+    "indira_ekadashi": "content/festivals/Serene Vishnu on Sheshnag at Sunrise.webp",
+    "papankusha_ekadashi": "content/festivals/Lord Vishnu at Sunrise by the Lotus Lake.webp",
+    "rama_ekadashi": "content/festivals/Vishnu by the Lotus Lake at Dawn.webp",
+    "devutthana_ekadashi": "content/festivals/Divine Dawn by the Sacred River.webp",
+    "utpanna_ekadashi": "content/festivals/Krishna and Radha by the Sacred Sunrise.webp",
+    "mokshada_ekadashi": "content/festivals/Lord Vishnu by the Lotus Lake.webp",
+    "vaikuntha_ekadashi": "content/festivals/Vishnu by the Lotus Lake at Dawn.webp",
+    "basant_panchami": "content/festivals/saraswati_festival.webp",
+    "diwali": "content/festivals/Diwali Ghat Glow Template.webp",
+    "holi": "content/festivals/Holi Festive Diptych.webp",
+    "rangwali_holi": "content/festivals/Holi Festive Diptych.webp",
+    "hanuman_jayanti_v": "content/festivals/Hanuman Over Golden Temple Valley.webp",
+    "janmashtami": "content/festivals/Moonlit Krishna by the Yamuna.webp",
 }
 # Rule-engine deity and festival image mapping (from Siddhanta rule catalog)
 DEITY_ART = {
@@ -115,9 +138,9 @@ def _panchang(spec: PostSpec, image: Image.Image, language: str = "en") -> Image
     return render_panchang(spec, image, language)
 
 
-def festival_art(name: str, image_file: str | None = None) -> str | None:
-    """Resolve only exact event matches or rule-assigned deity art; unknown events use neutral local artwork."""
-    art = FESTIVAL_ART.get(name)
+def festival_art(festival_id: str | None, image_file: str | None = None) -> str | None:
+    """Resolve by Siddhanta event ID, then approved deity alias, else neutral local artwork."""
+    art = FESTIVAL_ART.get(festival_id) if festival_id else None
     if art is None and image_file:
         art = DEITY_ART.get(Path(image_file).name.lower())
     if art is None:
@@ -144,7 +167,7 @@ def render(spec: PostSpec, language: str = "en") -> Image.Image | None:
 
         img_obj = spec.facts.get("festival_image")
         img_file = img_obj.get("file_name") if isinstance(img_obj, dict) else (img_obj if isinstance(img_obj, str) else None)
-        art = festival_art(str(spec.facts["festival"]), img_file)
+        art = festival_art(spec.facts.get("festival_id"), img_file)
         if art is None:
             return None
         try:

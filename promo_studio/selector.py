@@ -75,7 +75,8 @@ def select(daily: dict, muhurta: dict, card: str | None = None) -> PostSpec:
             raise DataError("No festival found for today")
         hindi = today["hindi"]
         return PostSpec("festival", when, {
-            **base, "festival": festivals[0]["name_en"], "festival_hi": festivals[0]["name_hi"],
+            **base, "festival_id": festivals[0].get("id"),
+            "festival": festivals[0]["name_en"], "festival_hi": festivals[0]["name_hi"],
             "festival_image": festivals[0].get("image"),
             "tithi_hi": f"{hindi['paksha']} {hindi['tithi_name']}",
             "nakshatra_hi": hindi["nakshatra"]})

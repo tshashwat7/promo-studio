@@ -105,7 +105,7 @@ class GraphicsTests(unittest.TestCase):
         festival = _mockup_spec("03-upcoming-festival", data, muhu)
         values = [i.value for i in festival_card.plan(
             draw, festival.to_dict()["facts"], date.fromisoformat(festival.date),
-            artwork.festival_art(festival.facts["festival"]))]
+            artwork.festival_art(festival.facts.get("festival_id")))]
         values += [i.value for i in kundli_card.plan(draw) + chakra_card.plan(draw)]
         text = " ".join(values)
         self.assertIn("Navratri Begins", text)

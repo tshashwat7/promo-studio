@@ -13,20 +13,27 @@ from .models import PostSpec
 COPY = {
     "en": {"today": "FESTIVAL TODAY", "upcoming": "UPCOMING FESTIVAL", "tithi": "TITHI",
            "nakshatra": "NAKSHATRA", "days": "In {n} days", "tomorrow": "Tomorrow",
-           "same_day": "Today", "cta": "Explore in Siddhanta"},
+           "same_day": "Today", "cta": "Check Festival & Muhurat"},
     "hi": {"today": "आज का पर्व", "upcoming": "आगामी पर्व", "tithi": "तिथि",
            "nakshatra": "नक्षत्र", "days": "{n} दिन बाद", "tomorrow": "कल",
-           "same_day": "आज", "cta": "सिद्धान्त पर देखें"},
+           "same_day": "आज", "cta": "पर्व और मुहूर्त देखें"},
 }
 # Per scene: (left, top, right, lowest bottom) of the parchment panel, read off each scene
 # so the deity, lamps, garlands and temples stay visible.
 SCENE_PANELS = {
     "content/festivals/Diwali Ghat Glow Template.webp": (250, 140, 800, 880),
+    "content/festivals/Divine Dawn by the Sacred River.webp": (30, 55, 600, 850),
+    "content/festivals/Krishna and Radha by the Sacred Sunrise.webp": (45, 55, 500, 820),
+    "content/festivals/Lord Vishnu by the Lotus Lake.webp": (560, 55, 1040, 820),
+    "content/festivals/Serene Vishnu on Sheshnag at Sunrise.webp": (30, 45, 600, 800),
     "content/festivals/Generic festival.webp": (540, 120, 1020, 860),
+    "content/festivals/Lord Vishnu at Sunrise by the Lotus Lake.webp": (30, 45, 600, 800),
     "content/festivals/Moonlit Krishna by the Yamuna.webp": (60, 200, 520, 890),
+    "content/festivals/Shiva Beneath the Himalayan Moon.png": (35, 55, 565, 850),
     "content/festivals/Shivratri Festive Diptych.webp": (230, 215, 670, 905),
     # Vishnu fills the scene; only the sky band above the serpent hoods (y 430) is open.
     "content/festivals/Vishnu on Shesha Beneath a Cosmic Sky.webp": (270, 24, 1050, 416),
+    "content/festivals/Vishnu by the Lotus Lake at Dawn.webp": (550, 45, 1050, 800),
     "content/festivals/navratri_festival.webp": (520, 130, 1030, 860),
     "content/festivals/saraswati_festival.webp": (530, 130, 1030, 860),
     "content/festivals/Hanuman Over Golden Temple Valley.webp": (100, 190, 530, 880),
@@ -91,7 +98,7 @@ def plan(draw: ImageDraw.ImageDraw, facts: dict, when: date, art: str,
     wide = width >= WIDE
     y = top + (24 if wide else PAD)
     upcoming = facts.get("upcoming", False)
-    cta, cta_font = copy["cta"], kit.font_for(lang, "button", 28)
+    cta, cta_font = copy["cta"], kit.font_for(lang, "button", 22)
     button_width = round(_length(draw, cta, cta_font)) + 64
     if button_width > width:
         raise ValueError(f"{cta!r} is wider than the festival panel")

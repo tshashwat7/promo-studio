@@ -67,28 +67,57 @@ class InstagramCarouselPublisher:
         for attempt in range(self.poll_attempts):
             try:
                 res = call(self.http, "GET", self._url(container_id), headers=self._headers,
-                           params={"fields": "status_code"})
+                           params={"fields": "status_code,status"})
                 status = res.get("status_code")
                 if status == "FINISHED":
                     return True
                 if status in ("ERROR", "EXPIRED"):
-                    log.warning("Container %s failed with status %s", container_id, status)
+                    log.warning("Container %s failed with status_code: %s (detail: %s)",
+                                container_id, status, res.get("status"))
                     return False
             except GraphError:
                 pass
             time.sleep(self.poll_interval)
-        return True  # Try publishing anyway if poll timed out
+        return False
+
+    def _create_child_container(self, url: str) -> str | None:
+        """Creates a single carousel item container and waits until it is FINISHED."""
+        for attempt in range(1, 3):
+            try:
+                item_res = call(self.http, "POST", self._url(f"{self.ig_user_id}/media"),
+                                headers=self._headers,
+                                json={"image_url": url, "is_carousel_item": True, "media_type": "IMAGE"})
+                item_id = item_res.get("id")
+                if item_id and self._wait_ready(item_id):
+                    return item_id
+                log.warning("Child container %s not ready on attempt %d; retrying in 4s...", item_id, attempt)
+                time.sleep(4)
+            except Exception as e:
+                log.warning("Child container creation failed on attempt %d: %s", attempt, e)
+                time.sleep(4)
+        return None
 
     def publish_single(self, image_url: str, caption: str) -> PostResult:
         """Publishes single image post to Instagram."""
-        try:
-            container = call(self.http, "POST", self._url(f"{self.ig_user_id}/media"),
-                             headers=self._headers,
-                             json={"image_url": image_url, "caption": caption})["id"]
-        except GraphError as exc:
-            return exc.to_result("instagram")
+        container = None
+        for attempt in range(1, 3):
+            try:
+                container = call(self.http, "POST", self._url(f"{self.ig_user_id}/media"),
+                                 headers=self._headers,
+                                 json={"image_url": image_url, "caption": caption, "media_type": "IMAGE"})["id"]
+                if self._wait_ready(container):
+                    break
+                log.warning("Single container %s not ready on attempt %d; retrying in 4s...", container, attempt)
+                time.sleep(4)
+                container = None
+            except GraphError as exc:
+                if attempt == 2:
+                    return exc.to_result("instagram")
+                time.sleep(4)
 
-        self._wait_ready(container)
+        if not container:
+            return PostResult("instagram", False, error_code="PLATFORM",
+                              error_message="Instagram container could not be processed. Image URL was not reachable.")
 
         try:
             media_id = call(self.http, "POST", self._url(f"{self.ig_user_id}/media_publish"),
@@ -105,12 +134,11 @@ class InstagramCarouselPublisher:
 
         item_containers = []
         try:
-            for url in image_urls:
-                item_res = call(self.http, "POST", self._url(f"{self.ig_user_id}/media"),
-                                headers=self._headers,
-                                json={"image_url": url, "is_carousel_item": True})
-                item_id = item_res["id"]
-                self._wait_ready(item_id)
+            for idx, url in enumerate(image_urls):
+                log.info("Preparing carousel item container %d/%d...", idx + 1, len(image_urls))
+                item_id = self._create_child_container(url)
+                if not item_id:
+                    raise GraphError("PLATFORM", f"Child container {idx+1} could not be processed by Instagram.")
                 item_containers.append(item_id)
 
             carousel_res = call(self.http, "POST", self._url(f"{self.ig_user_id}/media"),
@@ -121,7 +149,8 @@ class InstagramCarouselPublisher:
                                     "caption": caption
                                 })
             carousel_container_id = carousel_res["id"]
-            self._wait_ready(carousel_container_id)
+            if not self._wait_ready(carousel_container_id):
+                raise GraphError("PLATFORM", "Instagram carousel parent container could not be processed.")
 
             media_id = call(self.http, "POST", self._url(f"{self.ig_user_id}/media_publish"),
                             headers=self._headers,
