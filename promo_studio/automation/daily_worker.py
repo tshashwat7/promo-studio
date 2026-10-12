@@ -581,41 +581,38 @@ def run_daily_worker(
     daily_json = fetch_cross_repo_file("daily_panchang.json", panchang.date) or fetch_cross_repo_file("data.json", panchang.date)
     muhurta_json = fetch_cross_repo_file("muhurta_data.json", panchang.date) or fetch_cross_repo_file("muhu.json", panchang.date)
 
-    # 3. Handle Slots & Post Selection
-    ist_tz = dt.timezone(dt.timedelta(hours=5, minutes=30))
-    now_ist = dt.datetime.now(ist_tz)
-
-    active_slots = []
+    # 3. Content Selection (Unified Daily Batch)
+    active_posts: list[tuple[str, str]] = []
     if post_type_override:
-        active_slots = [(post_type_override, f"Manual Override: {post_type_override}")]
+        active_posts = [(post_type_override, f"Manual Override: {post_type_override}")]
     elif slot == "primary":
-        active_slots = [("panchang", "Today's Panchang Overview")]
+        active_posts = [("panchang", "Today's Panchang Overview")]
     elif slot == "secondary":
         t_type, t_title = get_thematic_post_type(panchang)
         if t_type:
-            active_slots = [(t_type, t_title)]
+            active_posts = [(t_type, t_title)]
         else:
             log.info("No secondary post scheduled for today (%s). Exiting cleanly.", panchang.date)
             return True
-    elif slot == "both":
-        active_slots = [("panchang", "Today's Panchang Overview")]
+    else:
+        # Default / "auto" / "both": Unified Batch Architecture
+        # 1. Primary Anchor is ALWAYS Panchang Overview
+        active_posts.append(("panchang", "Today's Panchang Overview"))
+        # 2. Check if today has a scheduled thematic post (Festival, Transit, Plan Day, or Monthly promo)
         t_type, t_title = get_thematic_post_type(panchang)
         if t_type:
-            active_slots.append((t_type, t_title))
-    else:  # "auto"
-        # In the morning (< 10 AM IST), anchor with Primary Panchang post
-        if now_ist.hour < 10:
-            active_slots = [("panchang", "Today's Panchang Overview")]
+            log.info("Thematic post scheduled for today: [%s] %s", t_type, t_title)
+            active_posts.append((t_type, t_title))
         else:
-            t_type, t_title = get_thematic_post_type(panchang)
-            if t_type:
-                active_slots = [(t_type, t_title)]
-            else:
-                log.info("No secondary post scheduled for %s; falling back to primary Panchang anchor.", panchang.date)
-                active_slots = [("panchang", "Today's Panchang Overview")]
+            log.info("No thematic post scheduled for today (%s). Single Panchang anchor planned.", panchang.date)
 
     success = True
-    for p_type, p_title in active_slots:
+    total_posts = len(active_posts)
+    for idx, (p_type, p_title) in enumerate(active_posts):
+        if idx > 0 and not dry_run:
+            log.info("Pausing 180 seconds (3 minutes) before publishing post %d/%d to avoid rate limits...", idx + 1, total_posts)
+            time.sleep(180)
+
         res = publish_post_unit(
             post_type=p_type,
             display_title=p_title,
