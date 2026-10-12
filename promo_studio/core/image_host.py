@@ -32,7 +32,7 @@ class ImgBBHost(ImageHost):
             raise ImageHostError("Image host API key is missing. Add it in Settings.")
         try:
             with open(path, "rb") as fh:
-                encoded = base64.b64encode(fh.read())
+                encoded = base64.b64encode(fh.read()).decode("ascii")
         except OSError as exc:
             raise ImageHostError("Could not read the image file.") from exc
 
@@ -57,7 +57,15 @@ class ImgBBHost(ImageHost):
                     time.sleep(3 * attempt)
                     continue
                 if response.status_code >= 400 or not url:
-                    raise ImageHostError(f"Image host rejected the upload (HTTP {response.status_code}).",
+                    err_msg = ""
+                    if isinstance(body, dict):
+                        err_obj = body.get("error")
+                        if isinstance(err_obj, dict):
+                            err_msg = err_obj.get("message", "")
+                        elif isinstance(err_obj, str):
+                            err_msg = err_obj
+                    detail = f": {err_msg}" if err_msg else ""
+                    raise ImageHostError(f"Image host rejected the upload (HTTP {response.status_code}){detail}.",
                                          retryable=response.status_code >= 500)
             except requests.RequestException as exc:
                 last_exc = exc
