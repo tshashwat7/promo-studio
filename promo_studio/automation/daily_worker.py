@@ -611,8 +611,8 @@ def run_daily_worker(
             if t_type:
                 active_slots = [(t_type, t_title)]
             else:
-                log.info("No secondary post scheduled for afternoon (%s). Exiting cleanly.", panchang.date)
-                return True
+                log.info("No secondary post scheduled for %s; falling back to primary Panchang anchor.", panchang.date)
+                active_slots = [("panchang", "Today's Panchang Overview")]
 
     success = True
     for p_type, p_title in active_slots:
