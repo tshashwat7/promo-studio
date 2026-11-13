@@ -37,6 +37,7 @@ from promo_studio.automation.card_universe import (
 )
 from promo_studio.automation.ai_blueprint import generate_cosmic_caption, get_devotional_fallback_copy
 from promo_studio.automation.instagram_carousel import InstagramCarouselPublisher
+from promo_studio.automation.github_media_host import DEFAULT_REELS_REPO, GitHubReleaseMediaHost
 from promo_studio.ai.gemini import GeminiProvider
 from promo_studio.core.image_host import ImgBBHost
 
@@ -114,26 +115,47 @@ def is_last_day_of_month(d: dt.date) -> bool:
     return next_day.month != d.month
 
 
-def get_thematic_post_type(panchang: DailyPanchang) -> tuple[str | None, str | None]:
-    """Determines the secondary/thematic post of the day:
-    1. 1st of month: Chakra Balance ('New Month: Balance Your Inner Energy')
-    2. Last day of month: Kundli Journey ('Month End: Your Kundli & Dasha Journey')
-    3. Active festival: Festival Alert
-    4. Friday: Today's Sky & Planetary Transit
-    5. Tuesday & Thursday: Plan Your Day (Choghadiya & Rahu Kaal)
+def get_thematic_posts(panchang: DailyPanchang) -> list[tuple[str, str]]:
+    """Determines secondary/thematic post(s) of the day based on actual data content.
+
+    Data-driven logic (replaces fixed weekday schedule):
+    1. 1st of month → Chakra Balance (fixed)
+    2. Last day of month → Kundli Journey (fixed)
+    3. Festival detected in panchang data → Festival Alert
+    4. Active transit event (retrograde, ingress) in gochar → Transit Insight
+    5. Otherwise → no thematic post
+    Multiple thematic posts can coexist (e.g. Festival + Transit on the same day).
     """
+    posts: list[tuple[str, str]] = []
     d = panchang.date
+
+    # Monthly anchor cards (exclusive — only one of these)
     if d.day == 1:
-        return "chakra", "Balance Your Inner Energy (Chakras)"
+        posts.append(("chakra", "Balance Your Inner Energy (Chakras)"))
+        return posts
     if is_last_day_of_month(d):
-        return "kundli", "Your Kundli & Dasha Journey"
+        posts.append(("kundli", "Your Kundli & Dasha Journey"))
+        return posts
+
+    # Festival card (from JSON data or fallback detector)
     if panchang.is_festival and panchang.festival_name:
-        return "festival", f"Festival Alert: {panchang.festival_name}"
-    weekday = d.weekday()  # Monday=0, Sunday=6
-    if weekday == 4:  # Friday
-        return "jyotish", "Today's Sky & Planetary Transit Insight"
-    if weekday in (1, 3):  # Tuesday, Thursday
-        return "plan_day", "Plan Your Day Wisely"
+        posts.append(("festival", f"Festival Alert: {panchang.festival_name}"))
+
+    # Transit card — show when gochar has an active spotlight event (retrograde or ingress)
+    if panchang.gochar:
+        motion = getattr(panchang.gochar, "spotlight_motion", "Direct")
+        # Show transit card if there's a retrograde or if major transit data exists
+        if motion and motion.lower() not in ("direct", ""):
+            posts.append(("jyotish", f"Planetary Transit: {panchang.gochar.spotlight_planet} {motion}"))
+
+    return posts
+
+
+def get_thematic_post_type(panchang: DailyPanchang) -> tuple[str | None, str | None]:
+    """Legacy wrapper — returns the first thematic post type for backward compatibility."""
+    posts = get_thematic_posts(panchang)
+    if posts:
+        return posts[0]
     return None, None
 
 
@@ -389,7 +411,10 @@ def prepare_studio_inputs(
             return daily_json, muhurta_json
 
     log.info("Synthesizing authoritative PromoStudio inputs directly for %s", target_date_iso)
-    return synthesize_studio_inputs(panchang, panchang.date)
+    daily_dict, muhu_dict = synthesize_studio_inputs(panchang, panchang.date)
+    if daily_json and "transits" in daily_json:
+        daily_dict["transits"] = daily_json["transits"]
+    return daily_dict, muhu_dict
 
 
 def publish_post_unit(
@@ -428,7 +453,75 @@ def publish_post_unit(
             studio = PromoStudio(out_dir)
             studio_card = {"plan_day": "muhurta", "jyotish": "transit"}.get(post_type, post_type)
 
-            if post_type == "jyotish":
+            if post_type in ("master", "panchang", "master_panchang"):
+                # 6-Slide Master Carousel:
+                # Slide 1 & 2: Panchang (Hi + En)
+                # Slide 3 & 4: Muhurta / Choghadiya (Hi + En)
+                # Slide 5 & 6: Planetary Transit (2 slides: Story + Grid)
+                master_cards = [
+                    ("panchang", "hi"),
+                    ("panchang", "en"),
+                    ("muhurta", "hi"),
+                    ("muhurta", "en"),
+                ]
+                for c_type, c_lang in master_cards:
+                    try:
+                        res_c = studio.generate(daily_input, muhurta_input, expected_date=panchang.date, language=c_lang, card=c_type)
+                        slide_jpg = out_dir / f"master_{c_type}_{c_lang}.jpg"
+                        with Image.open(res_c["path"]) as img:
+                            img = add_play_store_qr_overlay(img, lang=c_lang)
+                            img.convert("RGB").save(slide_jpg, format="JPEG", quality=95, optimize=True)
+                        slide_paths.append(slide_jpg)
+                    except Exception as e_c:
+                        log.warning("Master slide (%s %s) note: %s", c_type, c_lang, e_c)
+
+                # Transit & Planetary Positions: Generate both Hindi and English pairs
+                try:
+                    res_tr_hi = studio.generate(daily_input, muhurta_input, expected_date=panchang.date, language="hi", card="transit")
+                    paths_hi = res_tr_hi.get("paths", [res_tr_hi["path"]])
+                except Exception as e_tr_hi:
+                    log.warning("Hindi transit error: %s", e_tr_hi)
+                    paths_hi = []
+
+                try:
+                    res_tr_en = studio.generate(daily_input, muhurta_input, expected_date=panchang.date, language="en", card="transit")
+                    paths_en = res_tr_en.get("paths", [res_tr_en["path"]])
+                except Exception as e_tr_en:
+                    log.warning("English transit error: %s", e_tr_en)
+                    paths_en = []
+
+                # Story slides (Hi + En)
+                if paths_hi:
+                    s_hi = out_dir / "master_transit_story_hi.jpg"
+                    with Image.open(paths_hi[0]) as img:
+                        img = add_play_store_qr_overlay(img, lang="hi")
+                        img.convert("RGB").save(s_hi, format="JPEG", quality=95, optimize=True)
+                    slide_paths.append(s_hi)
+                if paths_en:
+                    s_en = out_dir / "master_transit_story_en.jpg"
+                    with Image.open(paths_en[0]) as img:
+                        img = add_play_store_qr_overlay(img, lang="en")
+                        img.convert("RGB").save(s_en, format="JPEG", quality=95, optimize=True)
+                    slide_paths.append(s_en)
+                    # Also save as master_transit_slide_1.jpg for backwards compatibility
+                    img.convert("RGB").save(out_dir / "master_transit_slide_1.jpg", format="JPEG", quality=95, optimize=True)
+
+                # Planetary Grid positions slides (Hi + En)
+                if len(paths_hi) > 1:
+                    p_hi = out_dir / "master_transit_positions_hi.jpg"
+                    with Image.open(paths_hi[1]) as img:
+                        img = add_play_store_qr_overlay(img, lang="hi")
+                        img.convert("RGB").save(p_hi, format="JPEG", quality=95, optimize=True)
+                    slide_paths.append(p_hi)
+                if len(paths_en) > 1:
+                    p_en = out_dir / "master_transit_positions_en.jpg"
+                    with Image.open(paths_en[1]) as img:
+                        img = add_play_store_qr_overlay(img, lang="en")
+                        img.convert("RGB").save(p_en, format="JPEG", quality=95, optimize=True)
+                    slide_paths.append(p_en)
+                    # Also save as master_transit_slide_2.jpg for backwards compatibility
+                    img.convert("RGB").save(out_dir / "master_transit_slide_2.jpg", format="JPEG", quality=95, optimize=True)
+            elif post_type == "jyotish":
                 # Transit card produces a 2-slide carousel (Slide 1 Story, Slide 2 Planetary Grid)
                 res_transit = studio.generate(daily_input, muhurta_input, expected_date=panchang.date, card="transit")
                 raw_paths = res_transit.get("paths", [res_transit["path"]])
@@ -494,7 +587,8 @@ def publish_post_unit(
 
     raw_caption = copy_data.get("instagram_caption", "")
     hashtags = " ".join(f"#{tag.lstrip('#')}" for tag in copy_data.get("hashtags", []))
-    final_caption = f"{raw_caption}\n\n.\n.\n{hashtags}".strip()
+    anchor_tag = "#Siddhanta_Festival" if post_type == "festival" else "#Siddhanta_DailyGuide"
+    final_caption = f"{raw_caption}\n\n.\n.\n{hashtags}\n{anchor_tag}".strip()
 
     # Save outputs
     (out_dir / f"caption_{post_type}.txt").write_text(final_caption, encoding="utf-8")
@@ -582,37 +676,36 @@ def run_daily_worker(
     daily_json = fetch_cross_repo_file("daily_panchang.json", panchang.date) or fetch_cross_repo_file("data.json", panchang.date)
     muhurta_json = fetch_cross_repo_file("muhurta_data.json", panchang.date) or fetch_cross_repo_file("muhu.json", panchang.date)
 
-    # 3. Content Selection (Unified Daily Batch)
+    # 3. Content Selection
+    ist_tz = dt.timezone(dt.timedelta(hours=5, minutes=30))
+    current_ist_hour = dt.datetime.now(ist_tz).hour
+
     active_posts: list[tuple[str, str]] = []
     if post_type_override:
         active_posts = [(post_type_override, f"Manual Override: {post_type_override}")]
-    elif slot == "primary":
-        active_posts = [("panchang", "Today's Panchang Overview")]
-    elif slot == "secondary":
-        t_type, t_title = get_thematic_post_type(panchang)
-        if t_type:
-            active_posts = [(t_type, t_title)]
+    elif slot == "festival":
+        if panchang.is_festival and panchang.festival_name:
+            active_posts = [("festival", f"Festival Alert: {panchang.festival_name}")]
         else:
-            log.info("No secondary post scheduled for today (%s). Exiting cleanly.", panchang.date)
+            log.info("No festival scheduled for %s. Exiting cleanly.", panchang.date)
             return True
+    elif slot in ("reel", "reels"):
+        return run_daily_reel(dry_run=dry_run, target_date=target_date, reel_lang="en")
     else:
-        # Default / "auto" / "both": Unified Batch Architecture
-        # 1. Primary Anchor is ALWAYS Panchang Overview
-        active_posts.append(("panchang", "Today's Panchang Overview"))
-        # 2. Check if today has a scheduled thematic post (Festival, Transit, Plan Day, or Monthly promo)
-        t_type, t_title = get_thematic_post_type(panchang)
-        if t_type:
-            log.info("Thematic post scheduled for today: [%s] %s", t_type, t_title)
-            active_posts.append((t_type, t_title))
-        else:
-            log.info("No thematic post scheduled for today (%s). Single Panchang anchor planned.", panchang.date)
+        # Default / "auto": Streamlined Daily Master Cadence
+        # 1. 6-Slide Master Carousel (Panchang + Muhurat + Transit)
+        active_posts.append(("master", "Today's Cosmic Master Guide (Panchang + Muhurta + Transit)"))
+
+        # 2. If today is an active festival, schedule dedicated Festival Carousel
+        if panchang.is_festival and panchang.festival_name:
+            active_posts.append(("festival", f"Festival Alert: {panchang.festival_name}"))
 
     success = True
     total_posts = len(active_posts)
     for idx, (p_type, p_title) in enumerate(active_posts):
         if idx > 0 and not dry_run:
-            log.info("Pausing 180 seconds (3 minutes) before publishing post %d/%d to avoid rate limits...", idx + 1, total_posts)
-            time.sleep(180)
+            log.info("Pausing 300 seconds (5 minutes) before publishing post %d/%d...", idx + 1, total_posts)
+            time.sleep(300)
 
         res = publish_post_unit(
             post_type=p_type,
@@ -631,7 +724,145 @@ def run_daily_worker(
         if not res:
             success = False
 
+    # Publish Daily Reel in sequence (paced 5 mins later)
+    if not post_type_override and slot not in ("carousel_only", "festival"):
+        if not dry_run:
+            log.info("Pausing 300 seconds (5 minutes) before generating and publishing Daily Reel...")
+            time.sleep(300)
+        reel_success = run_daily_reel(dry_run=dry_run, target_date=target_date, reel_lang="en")
+        if not reel_success:
+            log.warning("Daily Reel run finished with non-success status.")
+
     return success
+
+
+def _build_reel_caption(panchang, lang: str) -> str:
+    """Build a concise, high-retention Instagram Reel caption from daily Panchang data."""
+    if lang == "hi":
+        lines = [
+            f"आज का दैनिक पंचांग • {panchang.date_formatted}",
+            f"तिथि: {panchang.tithi_name} | नक्षत्र: {panchang.nakshatra_name}",
+        ]
+        if panchang.festival_name:
+            lines.append(f"विशेष पर्व: {panchang.festival_name}")
+        lines += [
+            "आज के शुभ मुहूर्त और ग्रह गोचर की पूरी जानकारी वीडियो में देखें।",
+            "",
+            "#Panchang #DailyPanchang #Muhurat #Jyotish #Siddhanta #पंचांग",
+        ]
+        return "\n".join(lines)
+
+    lines = [
+        f"Daily Panchang • {panchang.date_formatted}",
+        f"Tithi: {panchang.tithi_name} | Nakshatra: {panchang.nakshatra_name}",
+    ]
+    if panchang.festival_name:
+        lines.append(f"Festival: {panchang.festival_name}")
+    lines += [
+        "Save this Reel for today's Panchang, Planetary Transits, and Shubh Muhurat.",
+        "",
+        "#Panchang #DailyPanchang #ShubhMuhurat #VedicAstrology #Jyotish #Siddhanta",
+    ]
+    return "\n".join(lines)
+
+
+def run_daily_reel(
+    dry_run: bool = False,
+    target_date: dt.date = None,
+    reel_lang: str = "en",
+):
+    """Render the daily Panchang Reel MP4, upload to GitHub Releases, and publish to Instagram."""
+    log.info("========== Starting Siddhanta Daily Reel Worker (lang=%s) ==========", reel_lang)
+
+    ig_user_id = get_credential("IG_USER_ID", "ig.user_id")
+    ig_token = get_credential("IG_ACCESS_TOKEN")
+    reels_pat = get_credential("REELS_MEDIA_PAT")
+    reels_repo = os.environ.get("REELS_MEDIA_REPO", DEFAULT_REELS_REPO)
+
+    if not dry_run:
+        missing = []
+        if not ig_user_id: missing.append("IG_USER_ID")
+        if not ig_token: missing.append("IG_ACCESS_TOKEN")
+        if not reels_pat: missing.append("REELS_MEDIA_PAT")
+        if missing:
+            log.error("Missing required credentials for Reel publishing: %s", ", ".join(missing))
+            sys.exit(1)
+
+    panchang = get_authoritative_daily_panchang(target_date)
+    log.info("Reel Panchang: %s | Tithi: %s | Festival: %s",
+             panchang.date_formatted, panchang.tithi_name, panchang.festival_name or "None")
+
+    if not dry_run:
+        ig_publisher = InstagramCarouselPublisher(ig_user_id, ig_token)
+        if ig_publisher.has_posted_for_date(panchang.date, "reel"):
+            log.info("IDEMPOTENCY GUARD: Daily Reel already posted for %s. Skipping.", panchang.date)
+            return True
+
+    out_dir = Path("output") / panchang.date.strftime("%Y%m%d")
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    daily_json = fetch_cross_repo_file("daily_panchang.json", panchang.date) or fetch_cross_repo_file("data.json", panchang.date)
+    if not daily_json and Path("data.json").exists():
+        daily_json = json.loads(Path("data.json").read_text(encoding="utf-8"))
+    if not daily_json:
+        log.error("No daily_panchang.json or data.json available to render Reel.")
+        sys.exit(1)
+
+    muhurta_json = fetch_cross_repo_file("muhurta_data.json", panchang.date) or fetch_cross_repo_file("muhu.json", panchang.date)
+    if not muhurta_json and Path("muhu.json").exists():
+        muhurta_json = json.loads(Path("muhu.json").read_text(encoding="utf-8"))
+
+    reel_data_path = out_dir / "reel_daily_panchang.json"
+    reel_data_path.write_text(json.dumps(daily_json, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    cmd = [
+        sys.executable,
+        str(Path(__file__).resolve().parents[2] / "generate_reel.py"),
+        str(reel_data_path),
+        "--lang",
+        reel_lang,
+        "--voiceover",
+        "swara",
+        "--out",
+        str(out_dir / f"reel_{panchang.date.isoformat()}.mp4"),
+    ]
+    if muhurta_json:
+        reel_muhu_path = out_dir / "reel_muhurta.json"
+        reel_muhu_path.write_text(json.dumps(muhurta_json, ensure_ascii=False, indent=2), encoding="utf-8")
+        cmd.extend(["--muhurta", str(reel_muhu_path)])
+
+    log.info("Rendering Reel MP4: %s", " ".join(cmd))
+    import subprocess
+    subprocess.run(cmd, check=True)
+
+    publish_langs = ["en"] if reel_lang == "both" else [reel_lang]
+    if reel_lang == "both":
+        mp4_path = out_dir / f"reel_{panchang.date.isoformat()}_en.mp4"
+    else:
+        mp4_path = out_dir / f"reel_{panchang.date.isoformat()}.mp4"
+
+    caption = _build_reel_caption(panchang, publish_langs[0])
+    if dry_run:
+        log.info("[DRY RUN] Rendered Reel: %s", mp4_path)
+        log.info("[DRY RUN] Reel Caption:\n%s", caption)
+        return True
+
+    media_host = GitHubReleaseMediaHost(reels_pat, repo=reels_repo)
+    tag = f"reel-{panchang.date.isoformat()}"
+    asset_name = f"siddhanta_reel_{panchang.date.isoformat()}_{publish_langs[0]}.mp4"
+    log.info("Uploading %s to GitHub Release %s (%s)...", mp4_path.name, tag, reels_repo)
+    video_url = media_host.upload_video(mp4_path, tag=tag, asset_name=asset_name)
+    log.info("Uploaded Reel URL: %s. Pausing 4s for CDN propagation...", video_url)
+    time.sleep(4)
+
+    ig_publisher = InstagramCarouselPublisher(ig_user_id, ig_token)
+    res = ig_publisher.publish_reel(video_url, caption)
+    if res.ok:
+        log.info("SUCCESS! Reel live on Instagram: %s (Post ID: %s)", res.url, res.post_id)
+        return True
+
+    log.error("Failed to publish Reel to Instagram: [%s] %s", res.error_code, res.error_message)
+    sys.exit(1)
 
 
 def main():
@@ -640,12 +871,22 @@ def main():
     parser.add_argument("--format", choices=["single", "carousel"], default="carousel", help="Publish mode (default carousel)")
     parser.add_argument("--date", type=str, default=None, help="Target date YYYY-MM-DD")
     parser.add_argument("--type", choices=["panchang", "plan_day", "festival", "kundli", "chakra", "jyotish"], default=None, help="Force specific card type")
-    parser.add_argument("--slot", choices=["auto", "primary", "secondary", "both"], default="auto", help="Post slot: primary (Panchang), secondary (Thematic), both, or auto")
+    parser.add_argument("--slot", choices=["auto", "master", "festival", "reel", "carousel_only", "morning", "midday", "primary", "secondary", "both"], default="auto", help="Post slot: auto (streamlined daily sequence), master (carousel), festival, or reel")
+    parser.add_argument("--reel", action="store_true", help="Generate and publish daily Reel MP4 instead of image cards")
+    parser.add_argument("--reel-lang", choices=["en", "hi", "both"], default="en", help="Reel language (default en)")
     args = parser.parse_args()
 
     target_date = None
     if args.date:
         target_date = dt.date.fromisoformat(args.date)
+
+    if args.reel or args.slot in ("reel", "reels"):
+        run_daily_reel(
+            dry_run=args.dry_run,
+            target_date=target_date,
+            reel_lang=args.reel_lang,
+        )
+        return
 
     run_daily_worker(
         dry_run=args.dry_run,

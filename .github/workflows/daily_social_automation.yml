@@ -2,21 +2,20 @@ name: Siddhanta Daily Social Automator
 
 on:
   schedule:
-    # 00:30 UTC = 06:00 AM IST (Post 1: Daily Panchang Anchor)
+    # 00:30 UTC = 06:00 AM IST (Daily automated backup run)
     - cron: '30 0 * * *'
-    # 05:30 UTC = 11:00 AM IST (Post 2: Daily Thematic / Festival / Transit / Promo)
-    - cron: '30 5 * * *'
   workflow_dispatch:
     inputs:
       slot:
-        description: 'Post slot to publish: primary (Panchang), secondary (Thematic), both, or auto'
+        description: 'Post slot: auto (streamlined daily sequence), master (carousel only), festival, or reel'
         required: false
         type: choice
         options:
           - 'auto'
-          - 'primary'
-          - 'secondary'
-          - 'both'
+          - 'master'
+          - 'festival'
+          - 'reel'
+          - 'carousel_only'
         default: 'auto'
       dry_run:
         description: 'Run in dry-run mode (do not post to Instagram)'
@@ -29,6 +28,7 @@ on:
         type: choice
         options:
           - 'auto'
+          - 'master'
           - 'panchang'
           - 'plan_day'
           - 'festival'
@@ -41,6 +41,20 @@ on:
         required: false
         type: string
         default: ''
+      publish_reel:
+        description: 'Generate and publish daily Reel MP4 only'
+        required: false
+        type: boolean
+        default: false
+      reel_lang:
+        description: 'Reel language (en, hi, or both)'
+        required: false
+        type: choice
+        options:
+          - 'en'
+          - 'hi'
+          - 'both'
+        default: 'en'
   repository_dispatch:
     types:
       - panchang-data-updated
@@ -49,6 +63,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: daily-social-publisher
+  cancel-in-progress: false
 
 jobs:
   daily-blueprint-publisher:
@@ -73,6 +91,11 @@ jobs:
           python-version: '3.12'
           cache: 'pip'
 
+      - name: Install system media tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
@@ -86,8 +109,14 @@ jobs:
           IMAGE_HOST_KEY: ${{ secrets.IMAGE_HOST_KEY }}
           PANCHANG_REPO_PAT: ${{ secrets.PANCHANG_REPO_PAT }}
           DATA_BRANCH_TOKEN: ${{ secrets.DATA_BRANCH_TOKEN }}
+          REELS_MEDIA_PAT: ${{ secrets.REELS_MEDIA_PAT || secrets.PANCHANG_REPO_PAT }}
+          REELS_MEDIA_REPO: tshashwat7/siddhanta-reels-media
         run: |
           CMD="python -m promo_studio.automation.daily_worker"
+
+          if [ "${{ inputs.publish_reel }}" = "true" ]; then
+            CMD="$CMD --reel --reel-lang ${{ inputs.reel_lang || 'en' }}"
+          fi
 
           if [ "${{ inputs.dry_run }}" = "true" ]; then
             CMD="$CMD --dry-run"

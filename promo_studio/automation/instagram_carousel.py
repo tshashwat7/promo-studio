@@ -34,12 +34,13 @@ class InstagramCarouselPublisher:
         try:
             res = call(self.http, "GET", self._url(f"{self.ig_user_id}/media"),
                        headers=self._headers,
-                       params={"fields": "id,caption,timestamp", "limit": 10})
+                       params={"fields": "id,caption,timestamp,media_type", "limit": 15})
             items = res.get("data", [])
             ist_tz = dt.timezone(dt.timedelta(hours=5, minutes=30))
             for item in items:
                 ts = item.get("timestamp", "")
                 cap = item.get("caption", "")
+                media_type = (item.get("media_type") or "").upper()
                 if ts:
                     try:
                         post_dt = dt.datetime.fromisoformat(ts.replace("Z", "+00:00"))
@@ -48,8 +49,35 @@ class InstagramCarouselPublisher:
                         post_date = None
                     if post_date == target_date:
                         pt_lower = post_type.lower()
-                        # Match post type keywords or date strings
-                        if pt_lower in cap.lower() or (pt_lower == "panchang" and ("पंचांग" in cap or "panchang" in cap.lower())):
+                        cap_lower = cap.lower()
+
+                        matched = False
+                        if pt_lower in ("reel", "reels"):
+                            matched = media_type in ("REELS", "VIDEO")
+                        elif pt_lower in ("master", "panchang", "master_panchang"):
+                            matched = (
+                                "#siddhanta_dailyguide" in cap_lower
+                                or "daily panchang" in cap_lower
+                                or "panchang overview" in cap_lower
+                                or "दैनिक पंचांग" in cap_lower
+                                or "पंचांग" in cap
+                            )
+                        elif pt_lower == "festival":
+                            matched = (
+                                "#siddhanta_festival" in cap_lower
+                                or "festival alert" in cap_lower
+                                or "पर्व" in cap
+                                or "त्योहार" in cap
+                                or "vrat" in cap_lower
+                            )
+                        elif pt_lower in ("plan_day", "muhurta"):
+                            matched = "plan your day" in cap_lower or "choghadiya" in cap_lower or "चौघड़िया" in cap_lower or "शुभ मुहूर्त" in cap
+                        elif pt_lower == "jyotish":
+                            matched = "planetary transit" in cap_lower or "sky & planetary" in cap_lower or "गोचर" in cap
+                        elif pt_lower in ("chakra", "kundli"):
+                            matched = pt_lower in cap_lower
+
+                        if matched:
                             log.info("Found existing Instagram post %s for %s (%s)", item.get("id"), target_date, post_type)
                             return True
         except Exception as e:
@@ -63,8 +91,11 @@ class InstagramCarouselPublisher:
     def _headers(self) -> dict:
         return {"Authorization": f"Bearer {self.token}"}
 
-    def _wait_ready(self, container_id: str) -> bool:
-        for attempt in range(self.poll_attempts):
+    def _wait_ready(self, container_id: str, poll_attempts: int | None = None,
+                    poll_interval: float | None = None) -> bool:
+        attempts = poll_attempts if poll_attempts is not None else self.poll_attempts
+        interval = poll_interval if poll_interval is not None else self.poll_interval
+        for attempt in range(attempts):
             try:
                 res = call(self.http, "GET", self._url(container_id), headers=self._headers,
                            params={"fields": "status_code"})
@@ -76,7 +107,7 @@ class InstagramCarouselPublisher:
                     return False
             except GraphError:
                 pass
-            time.sleep(self.poll_interval)
+            time.sleep(interval)
         return True  # Try publishing anyway if poll timed out
 
     def publish_single(self, image_url: str, caption: str) -> PostResult:
@@ -132,6 +163,48 @@ class InstagramCarouselPublisher:
         except Exception as exc:
             log.warning("Carousel publish error: %s. Falling back to single image.", exc)
             return self.publish_single(image_urls[0], caption)
+
+    def publish_reel(
+        self,
+        video_url: str,
+        caption: str,
+        share_to_feed: bool = True,
+        poll_attempts: int = 20,
+        poll_interval: float = 5.0,
+    ) -> PostResult:
+        """Publishes a Reel from a public MP4 URL via Instagram Graph API."""
+        try:
+            container = call(
+                self.http,
+                "POST",
+                self._url(f"{self.ig_user_id}/media"),
+                headers=self._headers,
+                json={
+                    "media_type": "REELS",
+                    "video_url": video_url,
+                    "caption": caption,
+                    "share_to_feed": share_to_feed,
+                },
+            )["id"]
+        except GraphError as exc:
+            return exc.to_result("instagram")
+
+        if not self._wait_ready(container, poll_attempts=poll_attempts, poll_interval=poll_interval):
+            return PostResult("instagram", False, error_code="PLATFORM",
+                              error_message="Instagram could not process the Reel video.")
+
+        try:
+            media_id = call(
+                self.http,
+                "POST",
+                self._url(f"{self.ig_user_id}/media_publish"),
+                headers=self._headers,
+                json={"creation_id": container},
+            )["id"]
+            permalink = self._get_permalink(str(media_id))
+            return PostResult("instagram", True, post_id=str(media_id), url=permalink)
+        except GraphError as exc:
+            return exc.to_result("instagram")
 
     def _get_permalink(self, media_id: str) -> str:
         try:

@@ -156,6 +156,11 @@ def _build_panchang_from_dump(
         abhijit_str = hi_block["shubh_muhurta"]["abhijit"]
     elif "auspicious_muhurta" in en_block and "abhijit" in en_block["auspicious_muhurta"]:
         abhijit_str = en_block["auspicious_muhurta"]["abhijit"]
+    elif "timeline" in t and "periods" in t["timeline"]:
+        for p in t["timeline"]["periods"]:
+            if p.get("id") == "abhijit":
+                abhijit_str = f"{p.get('start')} - {p.get('end')}"
+                break
     else:
         abhijit_obj = t.get("abhijit_muhurta", {})
         if isinstance(abhijit_obj, dict) and "start" in abhijit_obj and "end" in abhijit_obj:
@@ -167,6 +172,11 @@ def _build_panchang_from_dump(
         rahu_str = hi_block["ashubh_muhurta"]["rahu_kaal"]
     elif "inauspicious_muhurta" in en_block and "rahu_kaal" in en_block["inauspicious_muhurta"]:
         rahu_str = en_block["inauspicious_muhurta"]["rahu_kaal"]
+    elif "timeline" in t and "periods" in t["timeline"]:
+        for p in t["timeline"]["periods"]:
+            if p.get("id") == "rahu":
+                rahu_str = f"{p.get('start')} - {p.get('end')}"
+                break
     else:
         rahu_obj = t.get("rahu_kaal", {})
         if isinstance(rahu_obj, dict) and "start" in rahu_obj and "end" in rahu_obj:
@@ -192,8 +202,24 @@ def _build_panchang_from_dump(
     festivals_today = t.get("festivals_today", [])
     if festivals_today and not is_festival:
         is_festival = True
-    festival_name = t.get("primary_festival_en") or (festivals_today[0] if festivals_today else "")
+    
+    festival_name = t.get("primary_festival_en", "") or ""
     festival_note = ""
+
+    if festivals_today:
+        first_fest = festivals_today[0]
+        if isinstance(first_fest, dict):
+            if not festival_name:
+                festival_name = first_fest.get("name_en") or first_fest.get("name") or ""
+            parana = first_fest.get("parana_time")
+            if isinstance(parana, dict) and parana.get("start") and parana.get("end"):
+                p_date = f" ({parana.get('date')})" if parana.get("date") else ""
+                festival_note = f"Parana: {parana['start']} – {parana['end']}{p_date}"
+            elif first_fest.get("ritual_label") and first_fest.get("ritual_window_start"):
+                festival_note = f"{first_fest['ritual_label']}: {first_fest['ritual_window_start']} – {first_fest.get('ritual_window_end', '')}"
+        elif isinstance(first_fest, str):
+            if not festival_name:
+                festival_name = first_fest
 
     # Check upcoming festivals if today has none
     if not is_festival and "upcoming_festivals" in daily_root:
