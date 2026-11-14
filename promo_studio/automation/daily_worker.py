@@ -737,31 +737,40 @@ def run_daily_worker(
 
 
 def _build_reel_caption(panchang, lang: str) -> str:
-    """Build a concise, high-retention Instagram Reel caption from daily Panchang data."""
+    """Build a concise, high-retention Instagram Reel caption with industry discovery hashtags and audio hooks."""
+    reel_tags = (
+        "#PanchangReels #DailyPanchang #DrikPanchang #AstroSage #HinduCalendar "
+        "#ShubhMuhurat #AbhijitMuhurta #RahuKaal #VedicAstrology #Jyotish "
+        "#SpiritualReels #SanatanDharma #AstrologyReels #आजकापंचांग #पंचांग "
+        "#शुभमुहूर्त #राशिफल #SiddhantaApp #ReelsIndia #ExplorePage"
+    )
+
     if lang == "hi":
         lines = [
-            f"आज का दैनिक पंचांग • {panchang.date_formatted}",
-            f"तिथि: {panchang.tithi_name} | नक्षत्र: {panchang.nakshatra_name}",
+            f"🔊 आज का दैनिक पंचांग और शुभ मुहूर्त • {panchang.date_formatted}",
+            f"✨ तिथि: {panchang.tithi_name} | नक्षत्र: {panchang.nakshatra_name}",
         ]
         if panchang.festival_name:
-            lines.append(f"विशेष पर्व: {panchang.festival_name}")
+            lines.append(f"🚩 विशेष पर्व: {panchang.festival_name}")
         lines += [
-            "आज के शुभ मुहूर्त और ग्रह गोचर की पूरी जानकारी वीडियो में देखें।",
+            "आज के शुभ-अशुभ मुहूर्त और 12 राशियों के गोचर फल की जानकारी वीडियो में देखें।",
+            "📲 दिन भर की सटीक वैदिक गणनाओं के लिए इस रील को सेव (Save 🔖) करें।",
             "",
-            "#Panchang #DailyPanchang #Muhurat #Jyotish #Siddhanta #पंचांग",
+            reel_tags,
         ]
         return "\n".join(lines)
 
     lines = [
-        f"Daily Panchang • {panchang.date_formatted}",
-        f"Tithi: {panchang.tithi_name} | Nakshatra: {panchang.nakshatra_name}",
+        f"🔊 Daily Panchang & Cosmic Alignment • {panchang.date_formatted}",
+        f"✨ Tithi: {panchang.tithi_name} | Nakshatra: {panchang.nakshatra_name}",
     ]
     if panchang.festival_name:
-        lines.append(f"Festival: {panchang.festival_name}")
+        lines.append(f"🚩 Festival: {panchang.festival_name}")
     lines += [
-        "Save this Reel for today's Panchang, Planetary Transits, and Shubh Muhurat.",
+        "Check today's auspicious Abhijit Muhurta, Rahu Kaal window & Planetary Transits.",
+        "📲 Save 🔖 this Reel for today's auspicious timing reference.",
         "",
-        "#Panchang #DailyPanchang #ShubhMuhurat #VedicAstrology #Jyotish #Siddhanta",
+        reel_tags,
     ]
     return "\n".join(lines)
 

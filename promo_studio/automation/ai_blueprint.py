@@ -50,7 +50,8 @@ Rules:
 - Never make superstitious fear-based claims, medical guarantees, or false promises.
 - Frame astrological advice as mindfulness, spiritual reflection, and mindful timing (Muhurta).
 - Keep the caption well-structured (around 180-240 words total), clean formatting with emojis.
-- Include 10-15 high-intent hashtags in Hindi and English.
+- Avoid repetitive or cookie-cutter phrasing: vary the opening hook, daily contemplation, and practical Vedic takeaway based on the specific Vara Devata, Nakshatra quality, and planetary transits.
+- Include 20-25 high-intent, targeted hashtags in Hindi and English. Blend established community discovery tags (e.g. #DrikPanchang, #AstroSage, #HinduCalendar, #VedicAstrology, #DailyPanchang, #ShubhMuhurat, #आजकापंचांग, #ज्योतिष) with app community tags (#SiddhantaApp, #Siddhanta_DailyGuide).
 - Always include the upfront Google Play Store download link:
   {PLAY_STORE_URL}
   and mention '(Direct link also in bio @siddhanta.app)'.
@@ -109,22 +110,23 @@ CRITICAL LANGUAGE RULE:
 
 Format structure:
 1. Hindi Section (Devanagari):
-   - Devotional hook with emoji (e.g. 🌸 दैनिक पंचांग • {p.date_formatted_hi})
+   - Engaging opening hook (rotate style: actionable inquiry, devotional greeting, or planetary wisdom)
    - Today's Pancha-Anga (Tithi, Nakshatra, Yoga, Karana) and spiritual significance in pure, culturally rich Hindi
-   - Auspicious muhurtas (Abhijit, Brahma Muhurta) and Rahu Kaal
+   - Auspicious muhurtas (Abhijit, Brahma Muhurta) and Rahu Kaal window
+   - Swipe prompt encouraging followers to explore all slides for today's Rashifal & Gochar
 2. English Section:
-   - Cosmic insights & mindful timing guidance in clean English (using '{p.vara_en}')
+   - Fresh cosmic insights & mindful timing guidance in clean English (using '{p.vara_en}')
    - Practical alignment guidance based on the day's Nakshatra ruler and deity
 3. Call-to-Action (Include the upfront link):
    📲 Download Siddhanta on Google Play:
    {PLAY_STORE_URL}
    (Direct link also available in bio @siddhanta.app)
-4. 10-15 relevant hashtags (mix of Hindi & English)
+4. 20-25 high-traffic hashtags blending category benchmarks (#DrikPanchang, #AstroSage, #HinduCalendar, #VedicAstrology, #DailyPanchang, #ShubhMuhurat, #Choghadiya, #RahuKaal, #Jyotish, #Rashifal, #SanatanDharma) and Hindi equivalents (#आजकापंचांग, #पंचांग, #शुभमुहूर्त, #ज्योतिष, #राशिफल).
 
 Output JSON schema:
 {{
   "instagram_caption": "Bilingual caption text formatted with line breaks...",
-  "hashtags": ["Panchang", "SiddhantaApp", "VedicAstrology", "पंचांग"]
+  "hashtags": ["DailyPanchang", "AajKaPanchang", "DrikPanchang", "AstroSage", "HinduCalendar", "ShubhMuhurat", "VedicAstrology", "Jyotish", "SiddhantaApp", "पंचांग"]
 }}
 """
 
@@ -238,26 +240,64 @@ def get_devotional_fallback_copy(p: DailyPanchang, post_type: str = "panchang") 
         tags = ["TransitAstrology", "Gochar", "VedicAstrology", "SiddhantaApp", "Jyotish", "ग्रहगोचर", "पंचांग"]
         return {"instagram_caption": caption, "hashtags": tags}
 
-    else:  # default panchang
+    else:  # default panchang / master
         yoga_str = f"🧘 योग: {p.yoga_name_hi} ({p.yoga_name})\n" if p.yoga_name else ""
         karana_str = f"⚡ करण: {p.karana_name_hi} ({p.karana_name})\n" if p.karana_name else ""
         brahma_str = f"🌅 ब्रह्म मुहूर्त: {p.brahma_muhurta}\n" if p.brahma_muhurta else ""
 
+        # Dynamic day-of-week spiritual contemplation for non-repetitive variety
+        day_reflections = {
+            "Sunday": "☀️ भगवान सूर्यदेव का पावन दिवस। आत्मबल, तेज और आरोग्य की वृद्धि हेतु आदित्य हृदय स्तोत्र व गायत्री जप का शुभ दिन।",
+            "Monday": "🌿 भगवान शिव एवं चंद्रदेव की कृपा का दिन। मानसिक शांति, अंतर्दृष्टि और ध्यान साधना के लिए विशेष फलदायी।",
+            "Tuesday": "🚩 श्री हनुमान जी एवं मंगल देव का पावन दिवस। संकल्प शक्ति, ऊर्जा और समस्त बाधाओं से मुक्ति के लिए पावन दिन।",
+            "Wednesday": "🕉️ विघ्नहर्ता भगवान गणेश एवं बुध देव का पावन दिवस। बुद्धि, विवेक, विद्या और व्यापारिक निर्णयों के लिए शुभ।",
+            "Thursday": "✨ देवगुरु बृहस्पति एवं भगवान विष्णु का पावन दिवस। ज्ञान, गुरु कृपा, धर्म और सत्कर्म की सिद्धि का समय।",
+            "Friday": "🌸 माता महालक्ष्मी एवं शुक्र देव का पावन दिवस। सुख-समृद्धि, कला, सौंदर्य और पारिवारिक सौहार्द का दिन।",
+            "Saturday": "⚖️ कर्मफलदाता शनि देव एवं श्री हनुमान का पावन दिवस। धैर्य, सेवा, न्याय और अनुशासन से कर्म संवारने का समय।",
+        }
+        day_note = day_reflections.get(p.vara_en, f"आज {p.deity_hi} की आराधना एवं नित्य वैदिक साधना का पावन दिन है।")
+
         caption = (
-            f"🌸 आज का पंचांग • {p.date_formatted_hi}\n\n"
-            f"आज {p.vara_hi} ({p.vara_en}) है, {p.deity_hi} की आराधना का पावन दिन।\n"
+            f"🌸 आज का पंचांग और शुभ मुहूर्त • {p.date_formatted_hi}\n\n"
+            f"{day_note}\n\n"
             f"✨ तिथि: {p.tithi_name_hi} ({p.tithi_name})\n"
             f"⭐ नक्षत्र: {p.nakshatra_name_hi} ({p.nakshatra_name})\n"
             f"{yoga_str}"
             f"{karana_str}"
-            f"🌟 अभिजीत मुहूर्त: {p.abhijit_muhurta}\n"
+            f"🌟 अभिजीत मुहूर्त: {p.abhijit_muhurta} (श्रेष्ठ समय)\n"
             f"{brahma_str}"
-            f"⚠️ राहुकाल: {p.rahu_kaal}\n"
+            f"⚠️ राहुकाल: {p.rahu_kaal} (महत्वपूर्ण कार्य टालें)\n"
             f"☀️ सूर्योदय: {p.sunrise_str} | सूर्यास्त: {p.sunset_str}\n"
             f"🙏 दैनिक संकल्प: {p.remedy}\n\n"
+            f"👉 आज का संपूर्ण चौघड़िया, राहुकाल और 12 राशियों का गोचर फल देखने के लिए सभी स्लाइड्स स्वाइप करें।\n\n"
             f"✨ Daily Vedic Overview:\n"
-            f"Begin your {p.vara_en} aligned with the cosmos. Tap into the energy of {p.nakshatra_name} nakshatra, utilize Abhijit Muhurta for auspicious undertakings, and maintain mindfulness during Rahu Kaal.\n\n"
+            f"Begin your {p.vara_en} aligned with cosmic rhythms. Utilize Abhijit Muhurta for auspicious undertakings, harness the constructive qualities of {p.nakshatra_name} Nakshatra, and maintain mindful awareness during Rahu Kaal.\n\n"
             f"{cta_block}"
         )
-        tags = ["Panchang", "DailyPanchang", "VedicAstrology", "Tithi", "Nakshatra", "SiddhantaApp", "पंचांग", "शुभमुहूर्त"]
+        tags = [
+            "DailyPanchang",
+            "AajKaPanchang",
+            "DrikPanchang",
+            "AstroSage",
+            "HinduCalendar",
+            "Panchang",
+            "ShubhMuhurat",
+            "AbhijitMuhurat",
+            "RahuKaal",
+            "Choghadiya",
+            "VedicAstrology",
+            "Jyotish",
+            "Kundli",
+            "Rashifal",
+            "Nakshatra",
+            "Tithi",
+            "SanatanDharma",
+            "आजकापंचांग",
+            "पंचांग",
+            "शुभमुहूर्त",
+            "ज्योतिष",
+            "राशिफल",
+            "SiddhantaApp",
+            "Siddhanta_DailyGuide",
+        ]
         return {"instagram_caption": caption, "hashtags": tags}
