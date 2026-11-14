@@ -197,7 +197,7 @@ def _build_panchang_from_dump(
     masa_name = en_block.get("masa") or t.get("masa_purnimanta") or t.get("masa", "Ashwin")
     masa_name_hi = hi_block.get("masa") or t.get("masa_hi", "आश्विन")
 
-    # Festivals
+    # Festivals (Multi-festival support)
     is_festival = t.get("is_festival_today", False)
     festivals_today = t.get("festivals_today", [])
     if festivals_today and not is_festival:
@@ -207,19 +207,40 @@ def _build_panchang_from_dump(
     festival_note = ""
 
     if festivals_today:
-        first_fest = festivals_today[0]
-        if isinstance(first_fest, dict):
-            if not festival_name:
-                festival_name = first_fest.get("name_en") or first_fest.get("name") or ""
-            parana = first_fest.get("parana_time")
-            if isinstance(parana, dict) and parana.get("start") and parana.get("end"):
-                p_date = f" ({parana.get('date')})" if parana.get("date") else ""
-                festival_note = f"Parana: {parana['start']} – {parana['end']}{p_date}"
-            elif first_fest.get("ritual_label") and first_fest.get("ritual_window_start"):
-                festival_note = f"{first_fest['ritual_label']}: {first_fest['ritual_window_start']} – {first_fest.get('ritual_window_end', '')}"
-        elif isinstance(first_fest, str):
-            if not festival_name:
-                festival_name = first_fest
+        if len(festivals_today) > 1:
+            names_en = []
+            notes = []
+            for f in festivals_today:
+                if isinstance(f, dict):
+                    nm = f.get("name_en") or f.get("name")
+                    if nm:
+                        names_en.append(nm)
+                    parana = f.get("parana_time")
+                    if isinstance(parana, dict) and parana.get("start") and parana.get("end"):
+                        p_date = f" ({parana.get('date')})" if parana.get("date") else ""
+                        notes.append(f"{nm} Parana: {parana['start']} – {parana['end']}{p_date}")
+                    elif f.get("ritual_label") and f.get("ritual_window_start"):
+                        notes.append(f"{nm} {f['ritual_label']}: {f['ritual_window_start']} – {f.get('ritual_window_end', '')}")
+                elif isinstance(f, str):
+                    names_en.append(f)
+            if names_en:
+                festival_name = " & ".join(names_en)
+            if notes:
+                festival_note = " | ".join(notes)
+        else:
+            first_fest = festivals_today[0]
+            if isinstance(first_fest, dict):
+                if not festival_name:
+                    festival_name = first_fest.get("name_en") or first_fest.get("name") or ""
+                parana = first_fest.get("parana_time")
+                if isinstance(parana, dict) and parana.get("start") and parana.get("end"):
+                    p_date = f" ({parana.get('date')})" if parana.get("date") else ""
+                    festival_note = f"Parana: {parana['start']} – {parana['end']}{p_date}"
+                elif first_fest.get("ritual_label") and first_fest.get("ritual_window_start"):
+                    festival_note = f"{first_fest['ritual_label']}: {first_fest['ritual_window_start']} – {first_fest.get('ritual_window_end', '')}"
+            elif isinstance(first_fest, str):
+                if not festival_name:
+                    festival_name = first_fest
 
     # Check upcoming festivals if today has none
     if not is_festival and "upcoming_festivals" in daily_root:

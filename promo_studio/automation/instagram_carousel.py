@@ -168,23 +168,31 @@ class InstagramCarouselPublisher:
         self,
         video_url: str,
         caption: str,
+        cover_url: str | None = None,
+        thumb_offset: int | None = 2000,
         share_to_feed: bool = True,
         poll_attempts: int = 20,
         poll_interval: float = 5.0,
     ) -> PostResult:
-        """Publishes a Reel from a public MP4 URL via Instagram Graph API."""
+        """Publishes a Reel from a public MP4 URL via Instagram Graph API with optional custom cover image or frame offset."""
         try:
+            payload = {
+                "media_type": "REELS",
+                "video_url": video_url,
+                "caption": caption,
+                "share_to_feed": share_to_feed,
+            }
+            if cover_url:
+                payload["cover_url"] = cover_url
+            elif thumb_offset is not None:
+                payload["thumb_offset"] = thumb_offset
+
             container = call(
                 self.http,
                 "POST",
                 self._url(f"{self.ig_user_id}/media"),
                 headers=self._headers,
-                json={
-                    "media_type": "REELS",
-                    "video_url": video_url,
-                    "caption": caption,
-                    "share_to_feed": share_to_feed,
-                },
+                json=payload,
             )["id"]
         except GraphError as exc:
             return exc.to_result("instagram")

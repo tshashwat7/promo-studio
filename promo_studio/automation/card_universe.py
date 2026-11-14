@@ -491,8 +491,9 @@ def render_card_3_festival(p: DailyPanchang, output_path: str | Path) -> str:
     canvas, draw = _prepare_card_canvas("festival", festival_name=fest_title)
     _draw_brand_header(canvas, draw, y=42)
 
-    # Title & Sub-headlines
-    draw.text((60, 160), fest_title, fill=COLOR_CRIMSON, font=_font_serif(56, bold=True))
+    # Title & Sub-headlines (Auto-scale font for multi-festival names)
+    font_size = 56 if len(fest_title) < 24 else (44 if len(fest_title) < 38 else 34)
+    draw.text((60, 160), fest_title, fill=COLOR_CRIMSON, font=_font_serif(font_size, bold=True))
     date_str = p.date.strftime("%d %B %Y").upper()
     paksha_str = f"{date_str}  •  {p.paksha.upper()} PAKSHA • {p.tithi_name.upper()}"
     draw.text((60, 232), paksha_str, fill=COLOR_GOLD, font=_font_sans(21, bold=True))

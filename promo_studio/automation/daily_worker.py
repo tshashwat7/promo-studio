@@ -12,6 +12,7 @@ Can be executed locally or via GitHub Actions.
 from __future__ import annotations
 
 import argparse
+import copy
 import datetime as dt
 import json
 import logging
@@ -531,6 +532,34 @@ def publish_post_unit(
                         img = add_play_store_qr_overlay(img, lang="en")
                         img.convert("RGB").save(jpg_slide, format="JPEG", quality=95, optimize=True)
                     slide_paths.append(jpg_slide)
+            elif post_type == "festival" and len(daily_input.get("today", {}).get("festivals_today", [])) > 1:
+                # Multi-Festival Carousel: Render dedicated bilingual pair (Hindi + English) for each festival
+                all_fests = daily_input["today"]["festivals_today"]
+                log.info("Detected %d coinciding festivals today. Generating multi-festival bilingual carousel slides...", len(all_fests))
+                for f_idx, fest_obj in enumerate(all_fests):
+                    sub_daily = copy.deepcopy(daily_input)
+                    sub_daily["today"]["festivals_today"] = [fest_obj]
+                    # Hindi Slide for this festival
+                    try:
+                        res_hi = studio.generate(sub_daily, muhurta_input, expected_date=panchang.date, language="hi", card="festival")
+                        hi_jpg = out_dir / f"primary_festival_{f_idx + 1}_hi.jpg"
+                        with Image.open(res_hi["path"]) as img:
+                            img = add_play_store_qr_overlay(img, lang="hi")
+                            img.convert("RGB").save(hi_jpg, format="JPEG", quality=95, optimize=True)
+                        slide_paths.append(hi_jpg)
+                    except Exception as e_hi:
+                        log.warning("Festival %d Hindi slide note (%s)", f_idx + 1, e_hi)
+
+                    # English Slide for this festival
+                    try:
+                        res_en = studio.generate(sub_daily, muhurta_input, expected_date=panchang.date, language="en", card="festival")
+                        en_jpg = out_dir / f"primary_festival_{f_idx + 1}_en.jpg"
+                        with Image.open(res_en["path"]) as img:
+                            img = add_play_store_qr_overlay(img, lang="en")
+                            img.convert("RGB").save(en_jpg, format="JPEG", quality=95, optimize=True)
+                        slide_paths.append(en_jpg)
+                    except Exception as e_en:
+                        log.warning("Festival %d English slide note (%s)", f_idx + 1, e_en)
             else:
                 # Bilingual Carousel: Slide 1 Hindi, Slide 2 English
                 try:
@@ -864,8 +893,20 @@ def run_daily_reel(
     log.info("Uploaded Reel URL: %s. Pausing 4s for CDN propagation...", video_url)
     time.sleep(4)
 
+    # Check for custom cover thumbnail generated alongside MP4
+    cover_path = mp4_path.with_name(f"{mp4_path.stem}_cover.jpg")
+    cover_url = None
+    img_host_key = get_credential("IMAGE_HOST_KEY")
+    if cover_path.exists() and img_host_key:
+        try:
+            img_host = ImgBBHost(img_host_key)
+            cover_url = img_host.upload(str(cover_path))
+            log.info("Uploaded custom Reel cover thumbnail: %s", cover_url)
+        except Exception as e_cov:
+            log.warning("Could not upload Reel cover thumbnail (%s); using video thumb_offset", e_cov)
+
     ig_publisher = InstagramCarouselPublisher(ig_user_id, ig_token)
-    res = ig_publisher.publish_reel(video_url, caption)
+    res = ig_publisher.publish_reel(video_url, caption, cover_url=cover_url, thumb_offset=2000)
     if res.ok:
         log.info("SUCCESS! Reel live on Instagram: %s (Post ID: %s)", res.url, res.post_id)
         return True

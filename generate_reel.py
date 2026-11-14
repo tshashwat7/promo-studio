@@ -196,14 +196,15 @@ class ReelRenderer:
 
         self.border = self.make_border()
         self.scenes = self.build_scenes()
+        self.recalculate_timeline()
 
+    def recalculate_timeline(self):
+        """Recalculates scene start offsets and total duration (used for audio-driven pacing)."""
         self.starts = []
         elapsed = 0.0
-
         for scene in self.scenes:
             self.starts.append(elapsed)
             elapsed += scene["duration"]
-
         self.duration = elapsed
 
     def px(self, value):
@@ -827,14 +828,22 @@ class ReelRenderer:
 
         festivals = today.get("festivals_today") or []
 
-        festival = (
-            festivals[0]
-            if today.get("is_festival_today") and festivals
-            else {}
-        )
+        if today.get("is_festival_today") and festivals:
+            if len(festivals) > 1:
+                names_en = [f.get("name_en", "") for f in festivals if isinstance(f, dict) and f.get("name_en")]
+                names_hi = [f.get("name_hi", "") for f in festivals if isinstance(f, dict) and f.get("name_hi")]
+                fest_en = " & ".join(names_en)
+                fest_hi = " एवं ".join(names_hi)
+                festival = festivals[0]
+            else:
+                festival = festivals[0]
+                fest_en = festival.get("name_en", "")
+                fest_hi = festival.get("name_hi", "")
+        else:
+            festival = {}
+            fest_en = ""
+            fest_hi = ""
 
-        fest_en = festival.get("name_en", "")
-        fest_hi = festival.get("name_hi", "")
         festival_name = fest_hi if self.language == "hi" else fest_en
 
         ritual = ""
@@ -859,10 +868,11 @@ class ReelRenderer:
         hook_info = self.get_intro_hook(today, fest_en, fest_hi)
         title_text = hook_info["hi" if self.language == "hi" else "en"]
 
+        intro_duration = 7.8 if (isinstance(festivals, list) and len(festivals) > 1) else (7.0 if (fest_hi or fest_en) else 6.8)
         scenes.append(
             {
                 "kind": "intro",
-                "duration": 6.8,
+                "duration": intro_duration,
                 "title": title_text,
                 "subtitle": (
                     local("Daily Panchang", "दैनिक पंचांग")
@@ -2246,6 +2256,20 @@ class ReelRenderer:
         return current
 
 
+def _get_audio_duration_seconds(file_path):
+    """Returns exact audio duration in seconds using ffprobe."""
+    try:
+        cmd = [
+            "ffprobe", "-v", "error", "-show_entries",
+            "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
+            str(file_path)
+        ]
+        out = subprocess.check_output(cmd, stderr=subprocess.DEVNULL).decode().strip()
+        return float(out)
+    except Exception:
+        return 0.0
+
+
 # ---------------------------------------------------------
 # Dynamic Voiceover Synthesis (Neural TTS)
 # ---------------------------------------------------------
@@ -2266,7 +2290,12 @@ def synthesize_voiceover_clips(renderer, data, voice="swara", temp_dir=None):
 
     today = data.get("today", {})
     hindi = today.get("hindi", {})
-    fest = today.get("primary_festival_hi") or ""
+    festivals = today.get("festivals_today") or []
+    if festivals:
+        fest_names = [f.get("name_hi") or f.get("name_en") for f in festivals if isinstance(f, dict)]
+        fest = " एवं ".join(filter(None, fest_names))
+    else:
+        fest = today.get("primary_festival_hi") or ""
     tithi = hindi.get("tithi_name", "")
     nak = hindi.get("nakshatra", "")
     yoga = hindi.get("yoga", "")
@@ -2642,13 +2671,23 @@ def main():
 
             continue
 
-        frame_count = round(
-            renderer.duration * args.fps
-        )
-
         # TemporaryDirectory cleans intermediate frames
         # even if FFmpeg fails.
         with tempfile.TemporaryDirectory() as temporary:
+            vo_clips = []
+            if not args.silent and getattr(args, "voiceover", "none") != "none":
+                try:
+                    vo_clips = synthesize_voiceover_clips(renderer, data, voice=args.voiceover, temp_dir=temporary)
+                    # Audio-driven scene pacing: extend each scene's visual duration to comfortably fit speech + 0.65s peaceful pause
+                    for scene_idx, clip_path in vo_clips:
+                        clip_dur = _get_audio_duration_seconds(clip_path)
+                        if clip_dur > 0:
+                            renderer.scenes[scene_idx]["duration"] = max(renderer.scenes[scene_idx]["duration"], round(clip_dur + 0.65, 2))
+                    renderer.recalculate_timeline()
+                except Exception as e:
+                    print(f"Voiceover synthesis note ({e}); proceeding with drone audio only")
+
+            frame_count = round(renderer.duration * args.fps)
             print(
                 f"Rendering {language}: "
                 f"{frame_count} frames, "
@@ -2706,13 +2745,6 @@ def main():
                         renderer.starts,
                     )
 
-                    vo_clips = []
-                    if getattr(args, "voiceover", "none") != "none":
-                        try:
-                            vo_clips = synthesize_voiceover_clips(renderer, data, voice=args.voiceover, temp_dir=temporary)
-                        except Exception as e:
-                            print(f"Voiceover synthesis note ({e}); proceeding with drone audio only")
-
                     if vo_clips:
                         # 0:v is video frames. 1:a is sound.wav (drone + bells)
                         command += ["-i", str(audio_path)]
@@ -2721,12 +2753,25 @@ def main():
 
                         filter_parts = ["[1:a]volume=0.15[bg]"]
                         delayed_labels = []
-                        for clip_idx, (scene_idx, _) in enumerate(vo_clips):
+
+                        for clip_idx, (scene_idx, clip_path) in enumerate(vo_clips):
                             in_arg_idx = 2 + clip_idx
                             delay_ms = int(renderer.starts[scene_idx] * 1000)
                             lbl = f"vo{clip_idx}"
                             filter_parts.append(f"[{in_arg_idx}:a]adelay={delay_ms}|{delay_ms},volume=1.0[{lbl}]")
                             delayed_labels.append(f"[{lbl}]")
+
+                        mix_inputs = "".join(delayed_labels)
+                        filter_parts.append(f"{mix_inputs}amix=inputs={len(vo_clips)}:normalize=0[vo_all]")
+                        filter_parts.append("[bg][vo_all]amix=inputs=2:duration=first:normalize=0[aout]")
+
+                        command += [
+                            "-filter_complex", ";".join(filter_parts),
+                            "-map", "0:v",
+                            "-map", "[aout]",
+                            "-c:a", "aac",
+                            "-b:a", "192k",
+                        ]
 
                         mix_inputs = "".join(delayed_labels)
                         filter_parts.append(f"{mix_inputs}amix=inputs={len(vo_clips)}:normalize=0[vo_all]")
@@ -2775,6 +2820,15 @@ def main():
             args.fps,
             frame_count / args.fps,
         )
+
+        # Export high-res cover thumbnail image (captured at 2.2s where all intro elements are fully visible)
+        try:
+            cover_frame = renderer.frame(0, 2.2)
+            cover_out = output.with_name(f"{output.stem}_cover.jpg")
+            cover_frame.convert("RGB").save(cover_out, quality=95)
+            print("Saved custom Reel cover thumbnail:", cover_out)
+        except Exception as e_cov:
+            print("Cover thumbnail export note:", e_cov)
 
         print("Saved", output)
 

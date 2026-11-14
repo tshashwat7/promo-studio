@@ -107,6 +107,7 @@ Astrological & Vedic context (authentic Siddhanta computation):
 CRITICAL LANGUAGE RULE:
 - In the English section, ALWAYS use the standard English day name '{p.vara_en}' (e.g. 'Sunday', 'Monday', 'Tuesday'). Do NOT use Sanskrit transliterations like 'Ravivara' or 'Somavara' in the English text.
 - In the Hindi section, ALWAYS use the authentic Hindi day name '{p.vara_hi}' (e.g. 'रविवार', 'सोमवार').
+- If multiple festivals are listed in festival_name (e.g. joined with '&'), celebrate both observances seamlessly in the caption, explain both spiritual rituals/timings, and generate individual hashtags for each festival without using the '&' character in tags.
 
 Format structure:
 1. Hindi Section (Devanagari):
@@ -171,7 +172,12 @@ def get_devotional_fallback_copy(p: DailyPanchang, post_type: str = "panchang") 
 
     if post_type == "festival" or (p.is_festival and p.festival_name):
         fest_name = p.festival_name or "Sacred Festival"
-        clean_name = fest_name.split("(")[0].strip().replace(" ", "")
+        fest_tags = []
+        for fn in fest_name.replace("&", ",").split(","):
+            c = fn.split("(")[0].strip().replace(" ", "")
+            if c:
+                fest_tags.append(c)
+
         caption = (
             f"🕉️ {fest_name} • {p.date_formatted_hi}\n\n"
             f"हार्दिक शुभकामनाएं एवं पावन बधाई।\n"
@@ -179,11 +185,33 @@ def get_devotional_fallback_copy(p: DailyPanchang, post_type: str = "panchang") 
             f"⭐ नक्षत्र: {p.nakshatra_name_hi} ({p.nakshatra_name})\n"
             f"🌟 शुभ मुहूर्त: {p.abhijit_muhurta}\n"
             f"📜 {p.festival_note or 'पावन पर्व की पूजा एवं संकल्प विधि का पालन करें।'}\n\n"
+            f"👉 सभी स्लाइड्स स्वाइप करें: आज के पावन पर्वों की विधि एवं मुहूर्त देखें।\n\n"
             f"✨ Sacred Observance Guidance:\n"
-            f"Celebrate {fest_name} with devotion, mental clarity, and sacred timing. Align your day with Vedic rituals and mindful intention.\n\n"
+            f"Celebrate {fest_name} with devotion, mental clarity, and sacred timing. Align your day with authentic Vedic rituals and mindful intention.\n\n"
             f"{cta_block}"
         )
-        tags = [clean_name, "VedicFestival", "HinduFestival", "Panchang", "SiddhantaApp", "Vrat", "Muhurta", "सनातन_धर्म"]
+        tags = fest_tags + [
+            "VedicFestival",
+            "HinduFestival",
+            "DrikPanchang",
+            "AstroSage",
+            "HinduCalendar",
+            "DailyPanchang",
+            "Vrat",
+            "PujaVidhi",
+            "Muhurta",
+            "ShubhMuhurat",
+            "SanatanDharma",
+            "Bhakti",
+            "VedicTradition",
+            "व्रत",
+            "त्योहार",
+            "पूजाविधि",
+            "शुभमुहूर्त",
+            "सनातन_धर्म",
+            "SiddhantaApp",
+            "Siddhanta_Festival",
+        ]
         return {"instagram_caption": caption, "hashtags": tags}
 
     elif post_type == "plan_day":
