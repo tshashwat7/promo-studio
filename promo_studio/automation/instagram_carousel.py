@@ -60,15 +60,12 @@ class InstagramCarouselPublisher:
                                 or "daily panchang" in cap_lower
                                 or "panchang overview" in cap_lower
                                 or "दैनिक पंचांग" in cap_lower
-                                or "पंचांग" in cap
                             )
                         elif pt_lower == "festival":
                             matched = (
                                 "#siddhanta_festival" in cap_lower
                                 or "festival alert" in cap_lower
-                                or "पर्व" in cap
-                                or "त्योहार" in cap
-                                or "vrat" in cap_lower
+                                or "#festivalalert" in cap_lower
                             )
                         elif pt_lower in ("plan_day", "muhurta"):
                             matched = "plan your day" in cap_lower or "choghadiya" in cap_lower or "चौघड़िया" in cap_lower or "शुभ मुहूर्त" in cap
