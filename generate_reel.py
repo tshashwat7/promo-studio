@@ -2772,18 +2772,6 @@ def main():
                             "-c:a", "aac",
                             "-b:a", "192k",
                         ]
-
-                        mix_inputs = "".join(delayed_labels)
-                        filter_parts.append(f"{mix_inputs}amix=inputs={len(vo_clips)}:normalize=0[vo_all]")
-                        filter_parts.append("[bg][vo_all]amix=inputs=2:duration=first:normalize=0[aout]")
-
-                        command += [
-                            "-filter_complex", ";".join(filter_parts),
-                            "-map", "0:v",
-                            "-map", "[aout]",
-                            "-c:a", "aac",
-                            "-b:a", "192k",
-                        ]
                     else:
                         command += [
                             "-i",
