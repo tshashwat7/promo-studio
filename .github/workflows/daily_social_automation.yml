@@ -111,6 +111,8 @@ jobs:
           DATA_BRANCH_TOKEN: ${{ secrets.DATA_BRANCH_TOKEN }}
           REELS_MEDIA_PAT: ${{ secrets.REELS_MEDIA_PAT || secrets.PANCHANG_REPO_PAT }}
           REELS_MEDIA_REPO: tshashwat7/siddhanta-reels-media
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
         run: |
           CMD="python -m promo_studio.automation.daily_worker"
 

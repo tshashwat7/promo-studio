@@ -38,6 +38,7 @@ from promo_studio.automation.card_universe import (
 )
 from promo_studio.automation.ai_blueprint import generate_cosmic_caption, get_devotional_fallback_copy
 from promo_studio.automation.instagram_carousel import InstagramCarouselPublisher
+from promo_studio.adapters.facebook import FacebookAdapter
 from promo_studio.automation.github_media_host import DEFAULT_REELS_REPO, GitHubReleaseMediaHost
 from promo_studio.ai.gemini import GeminiProvider
 from promo_studio.core.image_host import ImgBBHost
@@ -670,6 +671,25 @@ def publish_post_unit(
 
     if res.ok:
         log.info("SUCCESS! Post live on Instagram: %s (Post ID: %s)", res.url, res.post_id)
+
+        # 6. Facebook Page Publishing via Graph API (Multi-Image Album or Single Photo)
+        fb_page_id = get_credential("FB_PAGE_ID", "fb.page_id")
+        fb_page_token = get_credential("FB_PAGE_TOKEN")
+        if fb_page_id and fb_page_token:
+            try:
+                fb = FacebookAdapter(fb_page_id, fb_page_token)
+                if not fb.has_posted_for_date(panchang.date, post_type):
+                    log.info("Publishing %d photo(s) to Facebook Page (%s)...", len(uploaded_urls), fb_page_id)
+                    fb_res = fb.publish_multi_photo(uploaded_urls, final_caption)
+                    if fb_res.ok:
+                        log.info("SUCCESS! Post live on Facebook: %s (Post ID: %s)", fb_res.url, fb_res.post_id)
+                    else:
+                        log.warning("Facebook publish note: [%s] %s", fb_res.error_code, fb_res.error_message)
+                else:
+                    log.info("[FB IDEMPOTENCY GUARD] Facebook post for %s (%s) already live. Skipping.", panchang.date, post_type)
+            except Exception as e_fb:
+                log.warning("Facebook publish exception (non-fatal): %s", e_fb)
+
         return True
     else:
         log.error("Failed to publish to Instagram: [%s] %s", res.error_code, res.error_message)
@@ -918,6 +938,26 @@ def run_daily_reel(
     res = ig_publisher.publish_reel(video_url, caption, cover_url=cover_url, thumb_offset=2000)
     if res.ok:
         log.info("SUCCESS! Reel live on Instagram: %s (Post ID: %s)", res.url, res.post_id)
+
+        # Facebook Reel / Video publishing
+        fb_page_id = get_credential("FB_PAGE_ID", "fb.page_id")
+        fb_page_token = get_credential("FB_PAGE_TOKEN")
+        if fb_page_id and fb_page_token:
+            try:
+                fb = FacebookAdapter(fb_page_id, fb_page_token)
+                if not fb.has_posted_for_date(panchang.date, "reel"):
+                    log.info("Publishing Daily Reel to Facebook Page (%s)...", fb_page_id)
+                    reel_title = f"Daily Panchang • {panchang.date_formatted}"
+                    fb_res = fb.publish_video(video_url, caption, title=reel_title)
+                    if fb_res.ok:
+                        log.info("SUCCESS! Reel live on Facebook: %s (Video ID: %s)", fb_res.url, fb_res.post_id)
+                    else:
+                        log.warning("Facebook Reel publish note: [%s] %s", fb_res.error_code, fb_res.error_message)
+                else:
+                    log.info("[FB IDEMPOTENCY GUARD] Facebook Reel for %s already live. Skipping.", panchang.date)
+            except Exception as e_fb:
+                log.warning("Facebook Reel publish exception (non-fatal): %s", e_fb)
+
         return True
 
     log.error("Failed to publish Reel to Instagram: [%s] %s", res.error_code, res.error_message)
