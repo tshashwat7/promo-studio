@@ -617,7 +617,15 @@ def publish_post_unit(
     raw_caption = copy_data.get("instagram_caption", "")
     hashtags = " ".join(f"#{tag.lstrip('#')}" for tag in copy_data.get("hashtags", []))
     anchor_tag = "#Siddhanta_Festival" if post_type == "festival" else "#Siddhanta_DailyGuide"
-    final_caption = f"{raw_caption}\n\n.\n.\n{hashtags}\n{anchor_tag}".strip()
+    canonical_slot = (
+        "master" if post_type in ("master", "panchang", "master_panchang")
+        else ("festival" if post_type == "festival"
+        else ("muhurta" if post_type in ("plan_day", "muhurta")
+        else ("transit" if post_type in ("jyotish", "transit")
+        else post_type.lower())))
+    )
+    slot_tag = f"#siddhanta_slot_{canonical_slot}_{panchang.date.strftime('%Y%m%d')}"
+    final_caption = f"{raw_caption}\n\n.\n.\n{hashtags}\n{anchor_tag}\n{slot_tag}".strip()
 
     # Save outputs
     (out_dir / f"caption_{post_type}.txt").write_text(final_caption, encoding="utf-8")
@@ -774,6 +782,8 @@ def _build_reel_caption(panchang, lang: str) -> str:
         "#शुभमुहूर्त #राशिफल #SiddhantaApp #ReelsIndia #ExplorePage"
     )
 
+    slot_tag = f"#siddhanta_slot_reel_{panchang.date.strftime('%Y%m%d')}"
+
     if lang == "hi":
         lines = [
             f"🔊 आज का दैनिक पंचांग और शुभ मुहूर्त • {panchang.date_formatted}",
@@ -786,6 +796,7 @@ def _build_reel_caption(panchang, lang: str) -> str:
             "📲 दिन भर की सटीक वैदिक गणनाओं के लिए इस रील को सेव (Save 🔖) करें।",
             "",
             reel_tags,
+            slot_tag,
         ]
         return "\n".join(lines)
 
@@ -800,6 +811,7 @@ def _build_reel_caption(panchang, lang: str) -> str:
         "📲 Save 🔖 this Reel for today's auspicious timing reference.",
         "",
         reel_tags,
+        slot_tag,
     ]
     return "\n".join(lines)
 
@@ -839,16 +851,13 @@ def run_daily_reel(
     out_dir = Path("output") / panchang.date.strftime("%Y%m%d")
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    daily_json = fetch_cross_repo_file("daily_panchang.json", panchang.date) or fetch_cross_repo_file("data.json", panchang.date)
-    if not daily_json and Path("data.json").exists():
-        daily_json = json.loads(Path("data.json").read_text(encoding="utf-8"))
-    if not daily_json:
-        log.error("No daily_panchang.json or data.json available to render Reel.")
-        sys.exit(1)
-
-    muhurta_json = fetch_cross_repo_file("muhurta_data.json", panchang.date) or fetch_cross_repo_file("muhu.json", panchang.date)
-    if not muhurta_json and Path("muhu.json").exists():
-        muhurta_json = json.loads(Path("muhu.json").read_text(encoding="utf-8"))
+    daily_json = fetch_cross_repo_file("daily_panchang.json", panchang.date)
+    muhurta_json = fetch_cross_repo_file("muhurta_data.json", panchang.date)
+    if not daily_json or not muhurta_json:
+        log.info("Panchang dump not found matching %s; synthesizing authoritative inputs directly for Reel", panchang.date)
+        synth_daily, synth_muhu = synthesize_studio_inputs(panchang, panchang.date)
+        daily_json = daily_json or synth_daily
+        muhurta_json = muhurta_json or synth_muhu
 
     reel_data_path = out_dir / "reel_daily_panchang.json"
     reel_data_path.write_text(json.dumps(daily_json, ensure_ascii=False, indent=2), encoding="utf-8")
