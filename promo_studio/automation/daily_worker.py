@@ -39,6 +39,7 @@ from promo_studio.automation.card_universe import (
 from promo_studio.automation.ai_blueprint import generate_cosmic_caption, get_devotional_fallback_copy
 from promo_studio.automation.instagram_carousel import InstagramCarouselPublisher
 from promo_studio.adapters.facebook import FacebookAdapter
+from promo_studio.adapters.twitter import TwitterAdapter
 from promo_studio.automation.github_media_host import DEFAULT_REELS_REPO, GitHubReleaseMediaHost
 from promo_studio.ai.gemini import GeminiProvider
 from promo_studio.core.image_host import ImgBBHost
@@ -419,6 +420,30 @@ def prepare_studio_inputs(
     return daily_dict, muhu_dict
 
 
+def _build_twitter_caption(panchang: DailyPanchang, slot: str, site_url: str, slot_tag: str) -> str:
+    """Builds a concise, high-retention Twitter (X) post strictly under 280 characters."""
+    d_str = panchang.date.strftime("%d %b %Y")
+    if slot == "festival" and panchang.festival_name:
+        lines = [
+            f"🚩 {panchang.festival_name} • {d_str}",
+            f"✨ Tithi: {panchang.tithi_name} | {panchang.nakshatra_name}",
+            f"⚡ Abhijit: {panchang.abhijit_muhurta}",
+            f"Today's timings & rituals ⤵️",
+            site_url,
+            f"#VedicAstrology {slot_tag}",
+        ]
+    else:
+        lines = [
+            f"✨ Daily Panchang • {d_str}",
+            f"🕉️ {panchang.tithi_name} | {panchang.nakshatra_name}",
+            f"⚡ Abhijit: {panchang.abhijit_muhurta} | ⚠️ Rahu: {panchang.rahu_kaal}",
+            f"Today's guide & Choghadiya ⤵️",
+            site_url,
+            f"#DailyPanchang {slot_tag}",
+        ]
+    return "\n".join(lines)[:275]
+
+
 def publish_post_unit(
     post_type: str,
     display_title: str,
@@ -689,6 +714,30 @@ def publish_post_unit(
                     log.info("[FB IDEMPOTENCY GUARD] Facebook post for %s (%s) already live. Skipping.", panchang.date, post_type)
             except Exception as e_fb:
                 log.warning("Facebook publish exception (non-fatal): %s", e_fb)
+
+        # 7. Twitter (X) Publishing via API v2 & Media Upload
+        tw_key = get_credential("TWITTER_API_KEY")
+        tw_secret = get_credential("TWITTER_API_SECRET")
+        tw_token = get_credential("TWITTER_ACCESS_TOKEN")
+        tw_token_secret = get_credential("TWITTER_ACCESS_TOKEN_SECRET")
+        if tw_key and tw_secret and tw_token and tw_token_secret:
+            try:
+                tw_marker = out_dir / f"twitter_posted_{canonical_slot}.json"
+                if not tw_marker.exists():
+                    tw = TwitterAdapter(tw_key, tw_secret, tw_token, tw_token_secret)
+                    site_url = os.environ.get("SITE_URL", "https://siddhanta.pages.dev")
+                    tweet_text = _build_twitter_caption(panchang, canonical_slot, site_url, slot_tag)
+                    log.info("Publishing %d image card(s) to X (Twitter)...", min(len(slide_paths), 4))
+                    tw_res = tw.publish_tweet(tweet_text, media_files=slide_paths[:4])
+                    if tw_res.ok:
+                        log.info("SUCCESS! Tweet live on X: %s (Tweet ID: %s)", tw_res.url, tw_res.post_id)
+                        tw_marker.write_text(json.dumps({"post_id": tw_res.post_id, "url": tw_res.url}), encoding="utf-8")
+                    else:
+                        log.warning("Twitter publish note: [%s] %s", tw_res.error_code, tw_res.error_message)
+                else:
+                    log.info("[TWITTER IDEMPOTENCY GUARD] Tweet for %s (%s) already live. Skipping.", panchang.date, canonical_slot)
+            except Exception as e_tw:
+                log.warning("Twitter publish exception (non-fatal): %s", e_tw)
 
         return True
     else:
