@@ -421,28 +421,57 @@ def prepare_studio_inputs(
     return daily_dict, muhu_dict
 
 
-def _build_twitter_caption(panchang: DailyPanchang, slot: str, site_url: str, slot_tag: str) -> str:
-    """Builds a concise, high-retention Twitter (X) post strictly under 280 characters."""
+def _build_twitter_caption(
+    panchang: DailyPanchang,
+    slot: str,
+    app_url: str,
+    instagram_hashtags: list[str] | None = None,
+) -> str:
+    """Builds a clean, high-engagement Twitter (X) post strictly under 280 characters.
+
+    Keeps text generic & inviting, directs users to the App, and packs top discovery hashtags.
+    """
     d_str = panchang.date.strftime("%d %b %Y")
+    download_link = app_url or "https://bit.ly/47HN61M"
+
     if slot == "festival" and panchang.festival_name:
-        lines = [
-            f"🚩 {panchang.festival_name} • {d_str}",
-            f"✨ Tithi: {panchang.tithi_name} | {panchang.nakshatra_name}",
-            f"⚡ Abhijit: {panchang.abhijit_muhurta}",
-            f"Today's timings & rituals ⤵️",
-            site_url,
-            f"#VedicAstrology {slot_tag}",
-        ]
+        head = f"🚩 {panchang.festival_name} • {d_str}"
+        sub = "🕉️ Today's Tithi, Nakshatra, Shubh Muhurat & Choghadiya"
+        cta = f"📲 Complete Puja Vidhi & Panchang on Siddhanta App:\n{download_link}"
     else:
-        lines = [
-            f"✨ Daily Panchang • {d_str}",
-            f"🕉️ {panchang.tithi_name} | {panchang.nakshatra_name}",
-            f"⚡ Abhijit: {panchang.abhijit_muhurta} | ⚠️ Rahu: {panchang.rahu_kaal}",
-            f"Today's guide & Choghadiya ⤵️",
-            site_url,
-            f"#DailyPanchang {slot_tag}",
-        ]
-    return "\n".join(lines)[:275]
+        head = f"✨ Daily Vedic Panchang • {d_str}"
+        sub = "🕉️ Today's Tithi, Nakshatra, Shubh Muhurat & Choghadiya"
+        cta = f"📲 Complete calculations & Kundli on Siddhanta App:\n{download_link}"
+
+    # Pool high-traffic community discovery hashtags from Instagram generation + fallbacks
+    tags_pool: list[str] = []
+    if instagram_hashtags:
+        for tag in instagram_hashtags:
+            clean_tag = tag.strip().lstrip("#")
+            # Exclude internal slot tags or excessively long tags
+            if clean_tag and not clean_tag.startswith("siddhanta_slot") and clean_tag not in tags_pool:
+                tags_pool.append(clean_tag)
+
+    default_tags = [
+        "DailyPanchang", "AajKaPanchang", "DrikPanchang", "AstroSage",
+        "HinduCalendar", "ShubhMuhurat", "VedicAstrology", "Jyotish",
+        "पंचांग", "SiddhantaApp"
+    ]
+    for dt_tag in default_tags:
+        if dt_tag not in tags_pool:
+            tags_pool.append(dt_tag)
+
+    # Greedily pack hashtags into remaining 280-char space
+    base_block = f"{head}\n{sub}\n\n{cta}\n"
+    current_tags: list[str] = []
+    for candidate in tags_pool:
+        test_tag = f"#{candidate}"
+        test_line = " ".join(current_tags + [test_tag])
+        if len(base_block) + len(test_line) <= 270:
+            current_tags.append(test_tag)
+
+    full_tweet = f"{base_block}{' '.join(current_tags)}".strip()
+    return full_tweet[:275]
 
 
 def publish_post_unit(
@@ -728,19 +757,33 @@ def publish_post_unit(
             try:
                 tw_marker = out_dir / f"twitter_posted_{canonical_slot}.json"
                 if not tw_marker.exists():
-                    site_url = os.environ.get("SITE_URL", "https://siddhanta.pages.dev")
-                    tweet_text = _build_twitter_caption(panchang, canonical_slot, site_url, slot_tag)
-                    log.info("Publishing %d visual image card(s) to X (Twitter)...", min(len(slide_paths), 4))
+                    app_url = os.environ.get("APP_URL", "https://bit.ly/47HN61M")
+                    ig_hashtags = copy_data.get("hashtags", []) if copy_data else []
+                    tweet_text = _build_twitter_caption(
+                        panchang,
+                        canonical_slot,
+                        app_url,
+                        instagram_hashtags=ig_hashtags,
+                    )
+                    # Select English cards for Twitter (up to 4 cards)
+                    tw_media_files = [p for p in slide_paths if "_en." in p.name.lower()]
+                    if not tw_media_files:
+                        tw_media_files = slide_paths[:4]
+                    else:
+                        tw_media_files = tw_media_files[:4]
+
+                    log.info("Publishing %d English visual image card(s) to X (Twitter): %s",
+                             len(tw_media_files), [p.name for p in tw_media_files])
 
                     # Prefer Playwright browser automation (100% free, full visual cards)
                     if tw_auth_token and tw_ct0:
                         log.info("Using Twitter Playwright browser automation with session credentials...")
                         tw_adapter = TwitterPlaywrightAdapter(tw_auth_token, tw_ct0)
-                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=slide_paths[:4])
+                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
                     else:
                         log.info("Using Twitter Developer API v2...")
                         tw_adapter = TwitterAdapter(tw_key, tw_secret, tw_token, tw_token_secret)
-                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=slide_paths[:4])
+                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
 
                     if tw_res.ok:
                         log.info("SUCCESS! Tweet live on X: %s (Tweet ID: %s)", tw_res.url, tw_res.post_id)

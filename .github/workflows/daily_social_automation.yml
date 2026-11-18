@@ -120,6 +120,7 @@ jobs:
           TWITTER_API_SECRET: ${{ secrets.TWITTER_API_SECRET }}
           TWITTER_ACCESS_TOKEN: ${{ secrets.TWITTER_ACCESS_TOKEN }}
           TWITTER_ACCESS_TOKEN_SECRET: ${{ secrets.TWITTER_ACCESS_TOKEN_SECRET }}
+          APP_URL: ${{ secrets.APP_URL || 'https://bit.ly/47HN61M' }}
           SITE_URL: ${{ secrets.SITE_URL || 'https://siddhanta.pages.dev' }}
         run: |
           CMD="python -m promo_studio.automation.daily_worker"
