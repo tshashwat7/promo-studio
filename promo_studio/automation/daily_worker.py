@@ -40,6 +40,7 @@ from promo_studio.automation.ai_blueprint import generate_cosmic_caption, get_de
 from promo_studio.automation.instagram_carousel import InstagramCarouselPublisher
 from promo_studio.adapters.facebook import FacebookAdapter
 from promo_studio.adapters.twitter import TwitterAdapter
+from promo_studio.adapters.twitter_playwright import TwitterPlaywrightAdapter
 from promo_studio.automation.github_media_host import DEFAULT_REELS_REPO, GitHubReleaseMediaHost
 from promo_studio.ai.gemini import GeminiProvider
 from promo_studio.core.image_host import ImgBBHost
@@ -715,20 +716,32 @@ def publish_post_unit(
             except Exception as e_fb:
                 log.warning("Facebook publish exception (non-fatal): %s", e_fb)
 
-        # 7. Twitter (X) Publishing via API v2 & Media Upload
+        # 7. Twitter (X) Publishing (Playwright Browser Session preferred, API fallback)
+        tw_auth_token = get_credential("TWITTER_AUTH_TOKEN")
+        tw_ct0 = get_credential("TWITTER_CT0")
         tw_key = get_credential("TWITTER_API_KEY")
         tw_secret = get_credential("TWITTER_API_SECRET")
         tw_token = get_credential("TWITTER_ACCESS_TOKEN")
         tw_token_secret = get_credential("TWITTER_ACCESS_TOKEN_SECRET")
-        if tw_key and tw_secret and tw_token and tw_token_secret:
+
+        if (tw_auth_token and tw_ct0) or (tw_key and tw_secret and tw_token and tw_token_secret):
             try:
                 tw_marker = out_dir / f"twitter_posted_{canonical_slot}.json"
                 if not tw_marker.exists():
-                    tw = TwitterAdapter(tw_key, tw_secret, tw_token, tw_token_secret)
                     site_url = os.environ.get("SITE_URL", "https://siddhanta.pages.dev")
                     tweet_text = _build_twitter_caption(panchang, canonical_slot, site_url, slot_tag)
-                    log.info("Publishing %d image card(s) to X (Twitter)...", min(len(slide_paths), 4))
-                    tw_res = tw.publish_tweet(tweet_text, media_files=slide_paths[:4])
+                    log.info("Publishing %d visual image card(s) to X (Twitter)...", min(len(slide_paths), 4))
+
+                    # Prefer Playwright browser automation (100% free, full visual cards)
+                    if tw_auth_token and tw_ct0:
+                        log.info("Using Twitter Playwright browser automation with session credentials...")
+                        tw_adapter = TwitterPlaywrightAdapter(tw_auth_token, tw_ct0)
+                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=slide_paths[:4])
+                    else:
+                        log.info("Using Twitter Developer API v2...")
+                        tw_adapter = TwitterAdapter(tw_key, tw_secret, tw_token, tw_token_secret)
+                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=slide_paths[:4])
+
                     if tw_res.ok:
                         log.info("SUCCESS! Tweet live on X: %s (Tweet ID: %s)", tw_res.url, tw_res.post_id)
                         tw_marker.write_text(json.dumps({"post_id": tw_res.post_id, "url": tw_res.url}), encoding="utf-8")
