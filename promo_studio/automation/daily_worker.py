@@ -491,13 +491,57 @@ def publish_post_unit(
     """Renders, generates bilingual copy, and publishes a single or carousel post unit."""
     log.info("========== Processing Post Unit: [%s] '%s' ==========", post_type.upper(), display_title)
 
-    # 1. Idempotency Guard Check via Instagram Graph API
+    canonical_slot = (
+        "master" if post_type in ("master", "panchang", "master_panchang")
+        else ("festival" if post_type == "festival"
+        else ("muhurta" if post_type in ("plan_day", "muhurta")
+        else ("transit" if post_type in ("jyotish", "transit")
+        else post_type.lower())))
+    )
+    slot_tag = f"#siddhanta_slot_{canonical_slot}_{panchang.date.strftime('%Y%m%d')}"
+
+    # 1. Independent Idempotency Guard Checks for Each Platform
+    ig_posted = False
     if not dry_run and ig_user_id and ig_token:
-        ig_guard = InstagramCarouselPublisher(ig_user_id, ig_token)
-        if ig_guard.has_posted_for_date(panchang.date, post_type):
-            log.info("[IDEMPOTENCY GUARD] Post for %s (%s) is already live on Instagram! Skipping to prevent duplicate.",
-                     panchang.date, post_type)
-            return True
+        try:
+            ig_guard = InstagramCarouselPublisher(ig_user_id, ig_token)
+            ig_posted = ig_guard.has_posted_for_date(panchang.date, post_type)
+            if ig_posted:
+                log.info("[IG IDEMPOTENCY GUARD] Post for %s (%s) is already live on Instagram.", panchang.date, post_type)
+        except Exception as e_ig_chk:
+            log.warning("IG guard check note: %s", e_ig_chk)
+
+    fb_posted = False
+    fb_page_id = get_credential("FB_PAGE_ID", "fb.page_id")
+    fb_page_token = get_credential("FB_PAGE_TOKEN")
+    if not dry_run and fb_page_id and fb_page_token:
+        try:
+            fb_guard = FacebookAdapter(fb_page_id, fb_page_token)
+            fb_posted = fb_guard.has_posted_for_date(panchang.date, post_type)
+            if fb_posted:
+                log.info("[FB IDEMPOTENCY GUARD] Post for %s (%s) is already live on Facebook.", panchang.date, post_type)
+        except Exception as e_fb_chk:
+            log.warning("FB guard check note: %s", e_fb_chk)
+
+    tw_marker = out_dir / f"twitter_posted_{canonical_slot}.json"
+    tw_posted = tw_marker.exists()
+    if tw_posted:
+        log.info("[TWITTER IDEMPOTENCY GUARD] Tweet for %s (%s) is already live.", panchang.date, canonical_slot)
+
+    # Check if Twitter is configured
+    tw_auth_token = get_credential("TWITTER_AUTH_TOKEN")
+    tw_ct0 = get_credential("TWITTER_CT0")
+    tw_key = get_credential("TWITTER_API_KEY")
+    tw_secret = get_credential("TWITTER_API_SECRET")
+    tw_token = get_credential("TWITTER_ACCESS_TOKEN")
+    tw_token_secret = get_credential("TWITTER_ACCESS_TOKEN_SECRET")
+    has_tw_creds = bool((tw_auth_token and tw_ct0) or (tw_key and tw_secret and tw_token and tw_token_secret))
+
+    # If all configured platforms are already live, exit early (Zero AI & rendering wasted)
+    if (not ig_user_id or ig_posted) and (not fb_page_id or fb_posted) and (not has_tw_creds or tw_posted):
+        log.info("[ALL-PLATFORM GUARD] All configured platforms already live for %s (%s)! Skipping unit.",
+                 panchang.date, post_type)
+        return True
 
     # 2. Render 1080 x 1350 Carousel Slides
     slide_paths: list[Path] = []
@@ -658,9 +702,10 @@ def publish_post_unit(
         log.info("Rendered fallback primary post card (1080x1350 JPEG) to %s", primary_card_path)
 
     # 3. AI Copywriting (Bilingual caption with Hindi + English sections)
-    log.info("Invoking Gemini AI as Composer for post type '%s'...", post_type)
     copy_data = None
-    if gemini_key:
+    # Only invoke Gemini AI if Instagram or Facebook actually needs a new caption
+    if (not ig_posted or not fb_posted) and gemini_key:
+        log.info("Invoking Gemini AI as Composer for post type '%s'...", post_type)
         try:
             gemini = GeminiProvider(gemini_key, gemini_model)
             copy_data = generate_cosmic_caption(panchang, gemini, api_key=gemini_key, post_type=post_type)
@@ -668,19 +713,13 @@ def publish_post_unit(
             log.warning("Gemini AI failed: %s. Using devotional fallback copy.", e)
             copy_data = get_devotional_fallback_copy(panchang, post_type=post_type)
     else:
+        if ig_posted and fb_posted:
+            log.info("Instagram & Facebook already posted. Bypassing Gemini AI to save tokens.")
         copy_data = get_devotional_fallback_copy(panchang, post_type=post_type)
 
     raw_caption = copy_data.get("instagram_caption", "")
     hashtags = " ".join(f"#{tag.lstrip('#')}" for tag in copy_data.get("hashtags", []))
     anchor_tag = "#Siddhanta_Festival" if post_type == "festival" else "#Siddhanta_DailyGuide"
-    canonical_slot = (
-        "master" if post_type in ("master", "panchang", "master_panchang")
-        else ("festival" if post_type == "festival"
-        else ("muhurta" if post_type in ("plan_day", "muhurta")
-        else ("transit" if post_type in ("jyotish", "transit")
-        else post_type.lower())))
-    )
-    slot_tag = f"#siddhanta_slot_{canonical_slot}_{panchang.date.strftime('%Y%m%d')}"
     final_caption = f"{raw_caption}\n\n.\n.\n{hashtags}\n{anchor_tag}\n{slot_tag}".strip()
 
     # Save outputs
@@ -704,101 +743,93 @@ def publish_post_unit(
         log.info("[DRY RUN] %d-slide card(s) & bilingual caption generated successfully!", len(slide_paths))
         return True
 
-    # 4. Upload Carousel Slides to Image Host (ImgBB)
-    img_host = ImgBBHost(img_host_key)
+    # 4. Upload Carousel Slides to Image Host (ImgBB) - only if IG or FB needs to post
     uploaded_urls: list[str] = []
-    for idx, s_path in enumerate(slide_paths):
-        log.info("Uploading slide %s to image host...", s_path.name)
-        url = img_host.upload(str(s_path))
-        log.info("Slide %d URL: %s", idx + 1, url)
-        uploaded_urls.append(url)
-    log.info("Uploaded %d Image URL(s). Pausing 4s for public CDN edge propagation...", len(uploaded_urls))
-    time.sleep(4)
+    if not ig_posted or not fb_posted:
+        img_host = ImgBBHost(img_host_key)
+        for idx, s_path in enumerate(slide_paths):
+            log.info("Uploading slide %s to image host...", s_path.name)
+            url = img_host.upload(str(s_path))
+            log.info("Slide %d URL: %s", idx + 1, url)
+            uploaded_urls.append(url)
+        log.info("Uploaded %d Image URL(s). Pausing 4s for public CDN edge propagation...", len(uploaded_urls))
+        time.sleep(4)
 
     # 5. Instagram Publishing via Graph API (Carousel or Single)
-    ig_publisher = InstagramCarouselPublisher(ig_user_id, ig_token)
-    if len(uploaded_urls) > 1:
-        log.info("Publishing %d-slide carousel to Instagram...", len(uploaded_urls))
-        res = ig_publisher.publish_carousel(uploaded_urls, final_caption)
-    else:
-        log.info("Publishing single 4:5 Portrait post to Instagram...")
-        res = ig_publisher.publish_single(uploaded_urls[0], final_caption)
+    if not ig_posted and ig_user_id and ig_token and uploaded_urls:
+        ig_publisher = InstagramCarouselPublisher(ig_user_id, ig_token)
+        if len(uploaded_urls) > 1:
+            log.info("Publishing %d-slide carousel to Instagram...", len(uploaded_urls))
+            res = ig_publisher.publish_carousel(uploaded_urls, final_caption)
+        else:
+            log.info("Publishing single 4:5 Portrait post to Instagram...")
+            res = ig_publisher.publish_single(uploaded_urls[0], final_caption)
 
-    if res.ok:
-        log.info("SUCCESS! Post live on Instagram: %s (Post ID: %s)", res.url, res.post_id)
+        if res.ok:
+            log.info("SUCCESS! Post live on Instagram: %s (Post ID: %s)", res.url, res.post_id)
+        else:
+            log.warning("Instagram publish note: [%s] %s", res.error_code, res.error_message)
+    elif ig_posted:
+        log.info("[IG GUARD] Instagram post already live for %s (%s). Skipping.", panchang.date, post_type)
 
-        # 6. Facebook Page Publishing via Graph API (Multi-Image Album or Single Photo)
-        fb_page_id = get_credential("FB_PAGE_ID", "fb.page_id")
-        fb_page_token = get_credential("FB_PAGE_TOKEN")
-        if fb_page_id and fb_page_token:
-            try:
-                fb = FacebookAdapter(fb_page_id, fb_page_token)
-                if not fb.has_posted_for_date(panchang.date, post_type):
-                    log.info("Publishing %d photo(s) to Facebook Page (%s)...", len(uploaded_urls), fb_page_id)
-                    fb_res = fb.publish_multi_photo(uploaded_urls, final_caption)
-                    if fb_res.ok:
-                        log.info("SUCCESS! Post live on Facebook: %s (Post ID: %s)", fb_res.url, fb_res.post_id)
-                    else:
-                        log.warning("Facebook publish note: [%s] %s", fb_res.error_code, fb_res.error_message)
+    # 6. Facebook Page Publishing via Graph API (Multi-Image Album or Single Photo)
+    if not fb_posted and fb_page_id and fb_page_token and uploaded_urls:
+        try:
+            fb = FacebookAdapter(fb_page_id, fb_page_token)
+            log.info("Publishing %d photo(s) to Facebook Page (%s)...", len(uploaded_urls), fb_page_id)
+            fb_res = fb.publish_multi_photo(uploaded_urls, final_caption)
+            if fb_res.ok:
+                log.info("SUCCESS! Post live on Facebook: %s (Post ID: %s)", fb_res.url, fb_res.post_id)
+            else:
+                log.warning("Facebook publish note: [%s] %s", fb_res.error_code, fb_res.error_message)
+        except Exception as e_fb:
+            log.warning("Facebook publish exception (non-fatal): %s", e_fb)
+    elif fb_posted:
+        log.info("[FB GUARD] Facebook post already live for %s (%s). Skipping.", panchang.date, post_type)
+
+    # 7. Twitter (X) Publishing (Playwright Browser Session preferred, API fallback)
+    if has_tw_creds:
+        try:
+            if not tw_posted:
+                app_url = os.environ.get("APP_URL", "https://bit.ly/47HN61M")
+                ig_hashtags = copy_data.get("hashtags", []) if copy_data else []
+                tweet_text = _build_twitter_caption(
+                    panchang,
+                    canonical_slot,
+                    app_url,
+                    instagram_hashtags=ig_hashtags,
+                )
+                # Select English cards for Twitter (up to 4 cards)
+                tw_media_files = [p for p in slide_paths if "_en." in p.name.lower()]
+                if not tw_media_files:
+                    tw_media_files = slide_paths[:4]
                 else:
-                    log.info("[FB IDEMPOTENCY GUARD] Facebook post for %s (%s) already live. Skipping.", panchang.date, post_type)
-            except Exception as e_fb:
-                log.warning("Facebook publish exception (non-fatal): %s", e_fb)
+                    tw_media_files = tw_media_files[:4]
 
-        # 7. Twitter (X) Publishing (Playwright Browser Session preferred, API fallback)
-        tw_auth_token = get_credential("TWITTER_AUTH_TOKEN")
-        tw_ct0 = get_credential("TWITTER_CT0")
-        tw_key = get_credential("TWITTER_API_KEY")
-        tw_secret = get_credential("TWITTER_API_SECRET")
-        tw_token = get_credential("TWITTER_ACCESS_TOKEN")
-        tw_token_secret = get_credential("TWITTER_ACCESS_TOKEN_SECRET")
+                log.info("Publishing %d English visual image card(s) to X (Twitter): %s",
+                         len(tw_media_files), [p.name for p in tw_media_files])
 
-        if (tw_auth_token and tw_ct0) or (tw_key and tw_secret and tw_token and tw_token_secret):
-            try:
-                tw_marker = out_dir / f"twitter_posted_{canonical_slot}.json"
-                if not tw_marker.exists():
-                    app_url = os.environ.get("APP_URL", "https://bit.ly/47HN61M")
-                    ig_hashtags = copy_data.get("hashtags", []) if copy_data else []
-                    tweet_text = _build_twitter_caption(
-                        panchang,
-                        canonical_slot,
-                        app_url,
-                        instagram_hashtags=ig_hashtags,
-                    )
-                    # Select English cards for Twitter (up to 4 cards)
-                    tw_media_files = [p for p in slide_paths if "_en." in p.name.lower()]
-                    if not tw_media_files:
-                        tw_media_files = slide_paths[:4]
-                    else:
-                        tw_media_files = tw_media_files[:4]
-
-                    log.info("Publishing %d English visual image card(s) to X (Twitter): %s",
-                             len(tw_media_files), [p.name for p in tw_media_files])
-
-                    # Prefer Playwright browser automation (100% free, full visual cards)
-                    if tw_auth_token and tw_ct0:
-                        log.info("Using Twitter Playwright browser automation with session credentials...")
-                        tw_adapter = TwitterPlaywrightAdapter(tw_auth_token, tw_ct0)
-                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
-                    else:
-                        log.info("Using Twitter Developer API v2...")
-                        tw_adapter = TwitterAdapter(tw_key, tw_secret, tw_token, tw_token_secret)
-                        tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
-
-                    if tw_res.ok:
-                        log.info("SUCCESS! Tweet live on X: %s (Tweet ID: %s)", tw_res.url, tw_res.post_id)
-                        tw_marker.write_text(json.dumps({"post_id": tw_res.post_id, "url": tw_res.url}), encoding="utf-8")
-                    else:
-                        log.warning("Twitter publish note: [%s] %s", tw_res.error_code, tw_res.error_message)
+                # Prefer Playwright browser automation (100% free, full visual cards)
+                if tw_auth_token and tw_ct0:
+                    log.info("Using Twitter Playwright browser automation with session credentials...")
+                    tw_adapter = TwitterPlaywrightAdapter(tw_auth_token, tw_ct0)
+                    tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
                 else:
-                    log.info("[TWITTER IDEMPOTENCY GUARD] Tweet for %s (%s) already live. Skipping.", panchang.date, canonical_slot)
-            except Exception as e_tw:
-                log.warning("Twitter publish exception (non-fatal): %s", e_tw)
+                    log.info("Using Twitter Developer API v2...")
+                    tw_adapter = TwitterAdapter(tw_key, tw_secret, tw_token, tw_token_secret)
+                    tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
 
-        return True
-    else:
-        log.error("Failed to publish to Instagram: [%s] %s", res.error_code, res.error_message)
-        sys.exit(1)
+                if tw_res.ok:
+                    log.info("SUCCESS! Tweet live on X: %s (Tweet ID: %s)", tw_res.url, tw_res.post_id)
+                    tw_marker.write_text(json.dumps({"post_id": tw_res.post_id, "url": tw_res.url}), encoding="utf-8")
+                else:
+                    log.warning("Twitter publish note: [%s] %s", tw_res.error_code, tw_res.error_message)
+            else:
+                log.info("[TWITTER IDEMPOTENCY GUARD] Tweet for %s (%s) already live. Skipping.", panchang.date, canonical_slot)
+        except Exception as e_tw:
+            log.warning("Twitter publish exception (non-fatal): %s", e_tw)
+
+    return True
 
 
 def run_daily_worker(
