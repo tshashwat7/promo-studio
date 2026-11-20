@@ -77,27 +77,30 @@ class TwitterPlaywrightAdapter(PlatformAdapter):
                     ),
                 )
 
-                # Inject official authentication cookies
-                context.add_cookies([
-                    {
-                        "name": "auth_token",
-                        "value": self.auth_token,
-                        "domain": ".x.com",
-                        "path": "/",
-                        "httpOnly": True,
-                        "secure": True,
-                        "sameSite": "None",
-                    },
-                    {
-                        "name": "ct0",
-                        "value": self.ct0,
-                        "domain": ".x.com",
-                        "path": "/",
-                        "httpOnly": False,
-                        "secure": True,
-                        "sameSite": "Lax",
-                    },
-                ])
+                # Inject official authentication cookies across all X and Twitter domains
+                cookies = []
+                for domain in [".x.com", "x.com", ".twitter.com", "twitter.com"]:
+                    cookies.extend([
+                        {
+                            "name": "auth_token",
+                            "value": self.auth_token,
+                            "domain": domain,
+                            "path": "/",
+                            "httpOnly": True,
+                            "secure": True,
+                            "sameSite": "None",
+                        },
+                        {
+                            "name": "ct0",
+                            "value": self.ct0,
+                            "domain": domain,
+                            "path": "/",
+                            "httpOnly": False,
+                            "secure": True,
+                            "sameSite": "Lax",
+                        },
+                    ])
+                context.add_cookies(cookies)
 
                 page = context.new_page()
                 page.set_default_timeout(self.timeout_ms)
@@ -113,11 +116,41 @@ class TwitterPlaywrightAdapter(PlatformAdapter):
                     log.error("X session rejected cookies; redirected to login. Auth token may be expired.")
                     return PostResult(self.name, False, error_code="SESSION_EXPIRED", error_message="X rejected session cookies")
 
-                # 1. Type tweet text
+                # Dismiss any initial modal/cookie prompts that may obscure composer
+                for dismiss_sel in [
+                    'button[data-testid="app-bar-close"]',
+                    'button:has-text("Refuse non-essential cookies")',
+                    'button:has-text("Dismiss")',
+                    'button:has-text("Not now")',
+                    'div[aria-label="Close"]',
+                ]:
+                    try:
+                        elem = page.locator(dismiss_sel).first
+                        if elem.is_visible(timeout=1000):
+                            elem.click()
+                            time.sleep(0.5)
+                    except Exception:
+                        pass
+
+                # 1. Type tweet text (use keyboard insert_text for Lexical / Draft.js compatibility)
                 compose_box = page.locator('div[data-testid="tweetTextarea_0"]').first
                 compose_box.wait_for(state="visible", timeout=15000)
                 compose_box.click()
-                compose_box.fill(text)
+                time.sleep(0.5)
+                page.keyboard.insert_text(text)
+                time.sleep(0.5)
+
+                # Fallback check: if text is empty in innerText, inject via script
+                page.evaluate(
+                    """(t) => {
+                        const el = document.querySelector('div[data-testid="tweetTextarea_0"]');
+                        if (el && !el.innerText.trim()) {
+                            el.focus();
+                            document.execCommand('insertText', false, t);
+                        }
+                    }""",
+                    text
+                )
                 log.info("Typed formatted Vedic tweet copy (%d chars)", len(text))
                 time.sleep(1)
 
@@ -128,18 +161,25 @@ class TwitterPlaywrightAdapter(PlatformAdapter):
                     file_input.set_input_files(valid_files)
 
                     # Wait for media preview container to appear
-                    page.locator('div[data-testid="attachments"]').wait_for(state="visible", timeout=20000)
+                    page.locator('div[data-testid="attachments"]').wait_for(state="visible", timeout=25000)
                     log.info("Media cards attached and rendered successfully.")
                     time.sleep(2)
 
-                # 3. Click Post Button
-                post_btn = page.locator('button[data-testid="tweetButton"]').first
+                # 3. Click Post Button (Support both modal and inline buttons)
+                post_btn = page.locator('button[data-testid="tweetButton"], button[data-testid="tweetButtonInline"]').first
                 post_btn.wait_for(state="visible", timeout=10000)
+
+                # Wait for upload completion if button is disabled
+                for _ in range(12):
+                    if not post_btn.is_disabled():
+                        break
+                    time.sleep(1)
+
                 post_btn.click()
                 log.info("Clicked Post button on X. Waiting for publish confirmation...")
 
-                # Wait for compose modal to close or toast notification
-                time.sleep(5)
+                # Wait for compose modal to close or redirect
+                time.sleep(6)
                 browser.close()
 
                 log.info("SUCCESS! Tweet with %d visual card(s) dispatched to X via Playwright.", len(valid_files))
@@ -147,6 +187,14 @@ class TwitterPlaywrightAdapter(PlatformAdapter):
 
         except Exception as e:
             log.error("Twitter Playwright publish failed: %s", e)
+            try:
+                # Save screenshot of failure for artifact diagnosis
+                debug_img = Path("output") / "twitter_error.png"
+                debug_img.parent.mkdir(parents=True, exist_ok=True)
+                page.screenshot(path=str(debug_img))
+                log.info("Saved failure screenshot to %s", debug_img)
+            except Exception:
+                pass
             return PostResult(self.name, False, error_code="PLAYWRIGHT_ERROR", error_message=str(e))
 
     def post(self, payload: PostPayload) -> PostResult:

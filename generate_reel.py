@@ -1353,20 +1353,21 @@ class ReelRenderer:
 
         if has_intro_bg:
             # Render centered brand emblem above hook title in cosmic sky
+            # Vertically centered in Instagram 1:1 square safe zone (y = 420 to 1500)
             logo_progress = ease(time / 0.5)
             if logo_progress > 0:
-                logo_y = self.px(270)
-                logo_size = self.px(130)
+                logo_y = self.px(530)
+                logo_size = self.px(210)
                 # Outer gold decorative ring
                 draw.ellipse(
                     (
-                        center_x - logo_size / 2 - self.px(6),
-                        logo_y - logo_size / 2 - self.px(6),
-                        center_x + logo_size / 2 + self.px(6),
-                        logo_y + logo_size / 2 + self.px(6),
+                        center_x - logo_size / 2 - self.px(8),
+                        logo_y - logo_size / 2 - self.px(8),
+                        center_x + logo_size / 2 + self.px(8),
+                        logo_y + logo_size / 2 + self.px(8),
                     ),
                     outline=(*LINE, round(230 * logo_progress)),
-                    width=self.px(3),
+                    width=self.px(4),
                 )
                 self.draw_logo(
                     layer,
@@ -1376,7 +1377,7 @@ class ReelRenderer:
                     opacity=0.95 * logo_progress,
                 )
 
-            top = self.px(390)
+            top = self.px(680)
             title_color = (255, 245, 222)       # Luminous radiant cream
             sub_color = (240, 196, 105)         # Warm celestial gold
             fest_color = (255, 140, 90)         # Bright amber / saffron
