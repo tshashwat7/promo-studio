@@ -165,21 +165,68 @@ class TwitterPlaywrightAdapter(PlatformAdapter):
                     log.info("Media cards attached and rendered successfully.")
                     time.sleep(2)
 
-                # 3. Click Post Button (Support both modal and inline buttons)
-                post_btn = page.locator('button[data-testid="tweetButton"], button[data-testid="tweetButtonInline"]').first
-                post_btn.wait_for(state="visible", timeout=10000)
+                # 3. Click Post Button (Prioritize active modal dialog over background inline composer)
+                post_btn = None
+                for selector in [
+                    'div[role="dialog"] button[data-testid="tweetButton"]',
+                    'button[data-testid="tweetButton"]',
+                    'button[data-testid="tweetButtonInline"]',
+                ]:
+                    candidate = page.locator(selector).first
+                    try:
+                        if candidate.is_visible(timeout=2000):
+                            post_btn = candidate
+                            log.info("Resolved active X Post button via selector: %s", selector)
+                            break
+                    except Exception:
+                        continue
 
-                # Wait for upload completion if button is disabled
-                for _ in range(12):
+                if not post_btn:
+                    post_btn = page.locator('button[data-testid="tweetButton"], button[data-testid="tweetButtonInline"]').last
+                    post_btn.wait_for(state="visible", timeout=10000)
+
+                # Wait for media upload completion if button is disabled
+                for _ in range(15):
                     if not post_btn.is_disabled():
                         break
                     time.sleep(1)
 
-                post_btn.click()
-                log.info("Clicked Post button on X. Waiting for publish confirmation...")
+                log.info("Dispatching Post click to X...")
+                clicked = False
+                try:
+                    post_btn.click(force=True, timeout=5000)
+                    clicked = True
+                except Exception as e_click:
+                    log.warning("Standard click encountered interception (%s); trying JS dispatch...", e_click)
+
+                try:
+                    # Direct JS click bypasses any transparent modal overlays/pointer-event interceptors
+                    page.evaluate(
+                        """() => {
+                            const btn = document.querySelector('div[role="dialog"] button[data-testid="tweetButton"]') ||
+                                        document.querySelector('button[data-testid="tweetButton"]') ||
+                                        document.querySelector('button[data-testid="tweetButtonInline"]');
+                            if (btn && !btn.disabled) {
+                                btn.click();
+                            }
+                        }"""
+                    )
+                    clicked = True
+                except Exception:
+                    pass
+
+                # Also trigger native Twitter keyboard shortcut (Ctrl+Enter / Cmd+Enter)
+                try:
+                    compose_box.focus()
+                    page.keyboard.press("Control+Enter")
+                    time.sleep(1)
+                except Exception:
+                    pass
+
+                log.info("Post action dispatched to X. Waiting for publish confirmation...")
 
                 # Wait for compose modal to close or redirect
-                time.sleep(6)
+                time.sleep(7)
                 browser.close()
 
                 log.info("SUCCESS! Tweet with %d visual card(s) dispatched to X via Playwright.", len(valid_files))

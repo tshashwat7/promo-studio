@@ -39,7 +39,6 @@ from promo_studio.automation.card_universe import (
 from promo_studio.automation.ai_blueprint import generate_cosmic_caption, get_devotional_fallback_copy
 from promo_studio.automation.instagram_carousel import InstagramCarouselPublisher
 from promo_studio.adapters.facebook import FacebookAdapter
-from promo_studio.adapters.twitter import TwitterAdapter
 from promo_studio.adapters.twitter_playwright import TwitterPlaywrightAdapter
 from promo_studio.automation.github_media_host import DEFAULT_REELS_REPO, GitHubReleaseMediaHost
 from promo_studio.ai.gemini import GeminiProvider
@@ -528,14 +527,10 @@ def publish_post_unit(
     if tw_posted:
         log.info("[TWITTER IDEMPOTENCY GUARD] Tweet for %s (%s) is already live.", panchang.date, canonical_slot)
 
-    # Check if Twitter is configured
+    # Check if Twitter is configured via browser session credentials (100% free)
     tw_auth_token = get_credential("TWITTER_AUTH_TOKEN")
     tw_ct0 = get_credential("TWITTER_CT0")
-    tw_key = get_credential("TWITTER_API_KEY")
-    tw_secret = get_credential("TWITTER_API_SECRET")
-    tw_token = get_credential("TWITTER_ACCESS_TOKEN")
-    tw_token_secret = get_credential("TWITTER_ACCESS_TOKEN_SECRET")
-    has_tw_creds = bool((tw_auth_token and tw_ct0) or (tw_key and tw_secret and tw_token and tw_token_secret))
+    has_tw_creds = bool(tw_auth_token and tw_ct0)
 
     # If all configured platforms are already live, exit early (Zero AI & rendering wasted)
     if (not ig_user_id or ig_posted) and (not fb_page_id or fb_posted) and (not has_tw_creds or tw_posted):
@@ -809,21 +804,17 @@ def publish_post_unit(
                 log.info("Publishing %d English visual image card(s) to X (Twitter): %s",
                          len(tw_media_files), [p.name for p in tw_media_files])
 
-                # Prefer Playwright browser automation (100% free, full visual cards)
+                # Publish via Playwright browser automation (100% free, full visual cards)
                 if tw_auth_token and tw_ct0:
                     log.info("Using Twitter Playwright browser automation with session credentials...")
                     tw_adapter = TwitterPlaywrightAdapter(tw_auth_token, tw_ct0)
                     tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
-                else:
-                    log.info("Using Twitter Developer API v2...")
-                    tw_adapter = TwitterAdapter(tw_key, tw_secret, tw_token, tw_token_secret)
-                    tw_res = tw_adapter.publish_tweet(tweet_text, media_files=tw_media_files)
 
-                if tw_res.ok:
-                    log.info("SUCCESS! Tweet live on X: %s (Tweet ID: %s)", tw_res.url, tw_res.post_id)
-                    tw_marker.write_text(json.dumps({"post_id": tw_res.post_id, "url": tw_res.url}), encoding="utf-8")
-                else:
-                    log.warning("Twitter publish note: [%s] %s", tw_res.error_code, tw_res.error_message)
+                    if tw_res.ok:
+                        log.info("SUCCESS! Tweet live on X: %s (Tweet ID: %s)", tw_res.url, tw_res.post_id)
+                        tw_marker.write_text(json.dumps({"post_id": tw_res.post_id, "url": tw_res.url}), encoding="utf-8")
+                    else:
+                        log.warning("Twitter publish note: [%s] %s", tw_res.error_code, tw_res.error_message)
             else:
                 log.info("[TWITTER IDEMPOTENCY GUARD] Tweet for %s (%s) already live. Skipping.", panchang.date, canonical_slot)
         except Exception as e_tw:
