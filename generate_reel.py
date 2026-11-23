@@ -2310,6 +2310,25 @@ def synthesize_voiceover_clips(renderer, data, voice="swara", temp_dir=None):
     rahu_str = hindi.get("ashubh_muhurta", {}).get("rahu_kaal", "3:12 PM")
     rahu_start = rahu_str.split("–")[0].split("-")[0].replace("AM", "").replace("PM", "").strip()
 
+    def _get_time_period_hi(time_str: str) -> str:
+        """Determines 'सुबह', 'दोपहर', or 'शाम' dynamically from time string."""
+        s = time_str.upper()
+        raw = s.split("–")[0].split("-")[0].replace("AM", "").replace("PM", "").strip()
+        try:
+            hour = int(raw.split(":")[0])
+        except (ValueError, IndexError):
+            return "दोपहर"
+        if "AM" in s:
+            return "सुबह" if hour < 12 else "दोपहर"
+        elif "PM" in s:
+            if hour == 12 or hour < 4:
+                return "दोपहर"
+            return "शाम"
+        else:
+            return "सुबह" if hour < 12 else ("दोपहर" if hour < 16 else "शाम")
+
+    rahu_period = _get_time_period_hi(rahu_str)
+
     try:
         import datetime as dt_mod
         target_dt = dt_mod.date.fromisoformat(today["date"])
@@ -2335,7 +2354,7 @@ def synthesize_voiceover_clips(renderer, data, voice="swara", temp_dir=None):
         elif kind == "transit":
             txt = f"आज का ग्रह गोचर: गुरु {jup_rashi} राशि में, और शनि {sat_rashi} में वक्री हैं।"
         elif kind == "muhurat":
-            txt = f"आज का शुभ और अशुभ काल: शुभ अभिजित मुहूर्त {abh_start}, और राहुकाल दोपहर {rahu_start} से रहेगा।"
+            txt = f"आज का शुभ और अशुभ काल: शुभ अभिजित मुहूर्त {abh_start}, और राहुकाल {rahu_period} {rahu_start} से रहेगा।"
         elif kind == "guidance":
             txt = f"दैनिक मार्गदर्शन: दिशा शूल {disha}, शुभ रंग {color}, और आराध्य {deity}।"
         elif kind == "outro":
